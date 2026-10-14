@@ -1,0 +1,283 @@
+{
+  "info": {
+    "name": "Mercado Express - CP5 Parte II (Banco Tranquilo + RabbitMQ)",
+    "description": "Testes da API de compras do Mercado Express. O POST /api/pagamentos publica o pagamento na fila do RabbitMQ; o Banco Tranquilo responde de forma assíncrona e, se aprovado, o email-service envia o e-mail de confirmação.\n\nAutenticação: Basic Auth com o e-mail e a senha de um usuário (variáveis da coleção).\nRode a coleção inteira pelo Runner (ou: npx newman run postman/Mercado-Express-CP5.postman_collection.json).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{clienteEmail}}", "type": "string" },
+      { "key": "password", "value": "{{clienteSenha}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "clienteEmail", "value": "cliente@mercadoexpress.com" },
+    { "key": "clienteSenha", "value": "Cliente@123" },
+    { "key": "adminEmail", "value": "admin@mercadoexpress.com" },
+    { "key": "adminSenha", "value": "Admin@123" },
+    { "key": "produtoId", "value": "1" },
+    { "key": "produtoCaroId", "value": "5" },
+    { "key": "numeroPedido", "value": "" },
+    { "key": "pedidoRecusado", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Listar produtos (catálogo)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/produtos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const produtos = pm.response.json();",
+              "pm.test('catálogo com produtos', () => pm.expect(produtos.length).to.be.above(0));",
+              "const barato = produtos.find(p => p.quantidadeEstoque >= 2 && p.preco < 50);",
+              "if (barato) pm.collectionVariables.set('produtoId', barato.id);",
+              "const caro = produtos.find(p => p.quantidadeEstoque >= 18 && p.preco * 18 > 500);",
+              "if (caro) pm.collectionVariables.set('produtoCaroId', caro.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Comprar (POST /api/pagamentos)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"formaPagamento\": \"PIX\",\n    \"itens\": [\n        { \"produtoId\": {{produtoId}}, \"quantidade\": 2 }\n    ]\n}"
+        },
+        "url": "{{baseUrl}}/api/pagamentos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('202 Accepted (pagamento enviado ao banco pela fila)', () => pm.response.to.have.status(202));",
+              "const corpo = pm.response.json();",
+              "pm.test('pedido aguardando o Banco Tranquilo', () => pm.expect(corpo.status).to.eql('AGUARDANDO_PAGAMENTO'));",
+              "pm.test('transação com UUID', () => pm.expect(corpo.transacaoId).to.match(/^[0-9a-f-]{36}$/));",
+              "pm.collectionVariables.set('numeroPedido', corpo.numeroPedido);",
+              "pm.collectionVariables.set('tentativas', 0);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Consultar pedido (aguarda o banco e o e-mail)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/pedidos/{{numeroPedido}}"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["setTimeout(() => {}, 2000);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const pedido = pm.response.json();",
+              "const tentativas = Number(pm.collectionVariables.get('tentativas') || 0);",
+              "const aguardando = pedido.status === 'AGUARDANDO_PAGAMENTO' || (pedido.status === 'PAGO' && ['PENDENTE', 'SOLICITADO'].includes(pedido.emailStatus));",
+              "if (aguardando && tentativas < 20) {",
+              "    pm.collectionVariables.set('tentativas', tentativas + 1);",
+              "    postman.setNextRequest('3. Consultar pedido (aguarda o banco e o e-mail)');",
+              "} else {",
+              "    pm.test('banco respondeu (PAGO ou RECUSADO)', () => pm.expect(['PAGO', 'RECUSADO']).to.include(pedido.status));",
+              "    if (pedido.status === 'PAGO') {",
+              "        pm.test('código de autorização do Banco Tranquilo', () => pm.expect(pedido.codigoAutorizacao).to.match(/^TQ-\\d{6}$/));",
+              "        pm.test('e-mail de confirmação enviado', () => pm.expect(pedido.emailStatus).to.eql('ENVIADO'));",
+              "    } else {",
+              "        pm.test('motivo da recusa informado', () => pm.expect(pedido.motivoRecusa).to.be.a('string'));",
+              "    }",
+              "    pm.collectionVariables.set('tentativas', 0);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Compra acima do limite (banco recusa)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"formaPagamento\": \"CARTAO_CREDITO\",\n    \"itens\": [\n        { \"produtoId\": {{produtoCaroId}}, \"quantidade\": 18 }\n    ]\n}"
+        },
+        "url": "{{baseUrl}}/api/pagamentos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('202 Accepted', () => pm.response.to.have.status(202));",
+              "pm.test('valor acima de R$ 500,00', () => pm.expect(pm.response.json().valorTotal).to.be.above(500));",
+              "pm.collectionVariables.set('pedidoRecusado', pm.response.json().numeroPedido);",
+              "pm.collectionVariables.set('tentativas', 0);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Consultar pedido recusado",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/pedidos/{{pedidoRecusado}}"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["setTimeout(() => {}, 2000);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const pedido = pm.response.json();",
+              "const tentativas = Number(pm.collectionVariables.get('tentativas') || 0);",
+              "if (pedido.status === 'AGUARDANDO_PAGAMENTO' && tentativas < 20) {",
+              "    pm.collectionVariables.set('tentativas', tentativas + 1);",
+              "    postman.setNextRequest('5. Consultar pedido recusado');",
+              "} else {",
+              "    pm.test('pagamento RECUSADO pelo Banco Tranquilo', () => pm.expect(pedido.status).to.eql('RECUSADO'));",
+              "    pm.test('motivo: limite por transação', () => pm.expect(pedido.motivoRecusa).to.include('Limite'));",
+              "    pm.test('sem e-mail para pedido recusado', () => pm.expect(pedido.emailStatus).to.eql('NAO_APLICAVEL'));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Validação: JSON inválido (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n    \"itens\": []\n}" },
+        "url": "{{baseUrl}}/api/pagamentos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('400 Bad Request', () => pm.response.to.have.status(400));",
+              "pm.test('lista os erros', () => pm.expect(pm.response.json().erros.length).to.be.above(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Sem autenticação (401)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/pedidos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Meus pedidos",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/pedidos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const numeros = pm.response.json().map(p => p.numeroPedido);",
+              "pm.test('contém os pedidos feitos', () => pm.expect(numeros).to.include(Number(pm.collectionVariables.get('numeroPedido'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Dashboard da gerência (ADMIN)",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            { "key": "username", "value": "{{adminEmail}}", "type": "string" },
+            { "key": "password", "value": "{{adminSenha}}", "type": "string" }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/admin/dashboard"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const d = pm.response.json();",
+              "pm.test('faturamento e lucro calculados', () => { pm.expect(d.indicadores.faturamento).to.be.a('number'); pm.expect(d.indicadores.lucro).to.be.a('number'); });",
+              "pm.test('7 dias no gráfico de vendas', () => pm.expect(d.vendasPorDia.length).to.eql(7));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Dashboard com perfil CLIENTE (403)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/admin/dashboard"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"]
+          }
+        }
+      ]
+    }
+  ]
+}

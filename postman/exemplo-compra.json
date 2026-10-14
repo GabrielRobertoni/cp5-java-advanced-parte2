@@ -1,0 +1,7 @@
+{
+    "formaPagamento": "PIX",
+    "itens": [
+        { "produtoId": 1, "quantidade": 2 },
+        { "produtoId": 6, "quantidade": 1 }
+    ]
+}

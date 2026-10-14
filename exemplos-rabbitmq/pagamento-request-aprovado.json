@@ -1,0 +1,8 @@
+{
+    "numeroPedido": 172,
+    "valor": 89.90,
+    "formaPagamento": "PIX",
+    "clienteNome": "Teste pelo painel",
+    "clienteEmail": "teste@mercadoexpress.com",
+    "descricao": "Teste manual pelo RabbitMQ Management"
+}

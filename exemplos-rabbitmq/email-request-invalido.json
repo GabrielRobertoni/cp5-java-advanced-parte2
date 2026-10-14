@@ -1,0 +1,5 @@
+{
+    "ownerRef": "Tranquilo",
+    "subject": "E-mail sem destinatário",
+    "text": "Esta mensagem vai para a dead letter queue."
+}

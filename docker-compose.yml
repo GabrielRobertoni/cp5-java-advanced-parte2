@@ -1,0 +1,43 @@
+# =============================================================
+#  Infraestrutura do CP5 Parte II (para quem usa Docker Desktop):
+#    PostgreSQL 16 .... localhost:5432  (postgres / postgres, banco mercado_express)
+#    RabbitMQ 4 ....... localhost:5672  painel http://localhost:15672 (guest / guest)
+#    Mailpit .......... SMTP localhost:1025  caixa de e-mails http://localhost:8025
+#
+#    docker compose up -d        (para parar: docker compose down)
+#
+#  Depois rode os três microsserviços pelo IntelliJ (ou mvnw spring-boot:run em cada pasta).
+#  Os valores já batem com os padrões dos application.yml.
+# =============================================================
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cp5-postgres
+    environment:
+      POSTGRES_DB: mercado_express
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - cp5-postgres-dados:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: cp5-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - cp5-rabbitmq-dados:/var/lib/rabbitmq
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: cp5-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  cp5-postgres-dados:
+  cp5-rabbitmq-dados:
