@@ -1,0 +1,70 @@
+# ==========================================================
+#  email-service - envio dos e-mails de confirmação de pagamento
+#  Consome email-request-queue, envia por SMTP, grava cada envio
+#  no PostgreSQL e devolve o status em email-response-queue.
+# ==========================================================
+spring:
+  application:
+    name: email-service
+  main:
+    web-application-type: none
+
+  # Mesmo servidor PostgreSQL, schema próprio "email" (criado pelo Flyway)
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:mercado_express}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: email
+  flyway:
+    schemas: email
+    default-schema: email
+    locations: classpath:db/migration
+
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:amqp://guest:guest@localhost:5672}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+
+  # SMTP. Padrão: Mailpit local (127.0.0.1:1025, sem senha, caixa em http://localhost:8025).
+  # Gmail: MAIL_HOST=smtp.gmail.com MAIL_PORT=587 MAIL_USERNAME=voce@gmail.com
+  #        MAIL_PASSWORD=<senha de app de 16 dígitos> MAIL_SMTP_AUTH=true MAIL_SMTP_STARTTLS=true MAIL_FROM=voce@gmail.com
+  mail:
+    host: ${MAIL_HOST:127.0.0.1}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
+          connectiontimeout: 15000
+          timeout: 30000
+          writetimeout: 30000
+
+app:
+  email:
+    # Remetente padrão (no Gmail precisa ser a mesma conta de MAIL_USERNAME)
+    remetente: ${MAIL_FROM:nao-responda@mercadoexpress.com}
+    nome-remetente: Mercado Express
+
+logging:
+  level:
+    root: INFO
+    br.com.fiap.emailservice: INFO

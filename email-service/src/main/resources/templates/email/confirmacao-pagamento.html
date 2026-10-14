@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${email.subject}">Pagamento confirmado</title>
+</head>
+<!-- E-mails usam estilos inline: a maioria dos clientes de e-mail ignora CSS externo -->
+<body style="margin:0;padding:0;background:#f3f6f4;font-family:Segoe UI,Roboto,Arial,sans-serif;color:#1d2421;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f6f4;padding:24px 0;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0"
+                   style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;">
+                <tr>
+                    <td style="background:#0f3d2e;color:#ffffff;padding:20px 28px;">
+                        <span style="font-size:20px;">Mercado <strong>Express</strong></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:28px;">
+                        <h1 style="margin:0 0 8px;font-size:22px;color:#17694a;">Pagamento confirmado! &#9989;</h1>
+                        <p style="margin:0 0 16px;">
+                            Olá, <strong th:text="${email.nomeDestinatario} ?: 'cliente'">cliente</strong>!
+                            O <strong>Banco Tranquilo</strong> confirmou o pagamento do seu pedido
+                            <strong th:text="|#${email.numeroPedido}|">#1</strong>.
+                        </p>
+
+                        <table role="presentation" width="100%" cellpadding="8" cellspacing="0"
+                               style="border-collapse:collapse;font-size:14px;">
+                            <tr style="background:#e3f6ec;">
+                                <th align="left">Produto</th>
+                                <th align="right">Qtd.</th>
+                                <th align="right">Preço</th>
+                                <th align="right">Subtotal</th>
+                            </tr>
+                            <tr th:each="item : ${pedido.itens}" style="border-bottom:1px solid #e5ebe8;">
+                                <td th:text="${item.produto}">Produto</td>
+                                <td align="right" th:text="${item.quantidade}">1</td>
+                                <td align="right" th:text="${#numbers.formatCurrency(item.precoUnitario)}">R$ 0,00</td>
+                                <td align="right" th:text="${#numbers.formatCurrency(item.subtotal)}">R$ 0,00</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" align="right"><strong>Total pago</strong></td>
+                                <td align="right"><strong th:text="${#numbers.formatCurrency(pedido.valorTotal)}">R$ 0,00</strong></td>
+                            </tr>
+                        </table>
+
+                        <table role="presentation" cellpadding="4" cellspacing="0" style="margin-top:16px;font-size:14px;color:#47524d;">
+                            <tr><td>Forma de pagamento:</td><td><strong th:text="${pedido.formaPagamento}">Pix</strong></td></tr>
+                            <tr><td>Código de autorização:</td><td><strong th:text="${pedido.codigoAutorizacao}">TQ-000000</strong></td></tr>
+                            <tr><td>Transação:</td><td th:text="${pedido.transacaoId}">uuid</td></tr>
+                            <tr th:if="${pedido.pagoEm}"><td>Data:</td>
+                                <td th:text="${#temporals.format(pedido.pagoEm, 'dd/MM/yyyy HH:mm')}">data</td></tr>
+                        </table>
+
+                        <p style="margin:24px 0 0;">Obrigado pela preferência!<br>Equipe Mercado Express</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="background:#f3f6f4;color:#77837d;font-size:12px;padding:14px 28px;">
+                        Este é um e-mail automático de confirmação de pagamento. Não é necessário responder.
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>
