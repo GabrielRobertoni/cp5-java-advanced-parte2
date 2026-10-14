@@ -1,0 +1,75 @@
+FIAP - Análise e Desenvolvimento de Sistemas (TDS)
+Java Advanced - Prof. Dr. Marcel Stefan Wagner
+CHECKPOINT 5 - PARTE II (Microsserviços com RabbitMQ - Spring de Mensageria com API e e-mail)
+
+Turma: 2TDSR       Curso: Análise e Desenvolvimento de Sistemas (TDS)
+
+INTEGRANTES
+- Gabriel Robertoni Padilha ............. RM 566293
+- Bruno Ferreira ........................ RM 563489
+
+GITHUB DO PROJETO (README com descrição, prints, explicações e exemplos)
+https://github.com/GabrielRobertoni/cp5-java-advanced-parte2
+
+VÍDEO (aplicação rodando, Dashboard do RabbitMQ e testes no Postman)
+<colocar aqui o link do YouTube (não listado)>
+
+IDE UTILIZADO
+IntelliJ IDEA
+
+PROJETO
+Três microsserviços Spring Boot 4.1.1 (Java 21, Maven) que conversam pelo RabbitMQ:
+- mercado-express ... loja (login, carrinho, pedidos), API REST de pagamentos e dashboard da gerência (porta 8080)
+- banco-tranquilo ... API de pagamentos do Banco Tranquilo (consome os pedidos e responde sucesso ou erro)
+- email-service ..... envia o e-mail de confirmação do pagamento e grava cada envio no PostgreSQL
+Exchanges/filas: pagamento-request, pagamento-response-sucesso, pagamento-response-erro,
+email-request, email-response (+ mercado-dead-letter-queue). Criadas automaticamente pelos serviços.
+
+CONFIGURAÇÃO DO BANCO DE DADOS (PostgreSQL - o mesmo da Parte I)
+- Banco: mercado_express    Host: localhost    Porta: 5432    Usuário: postgres    Senha: postgres
+  (pode ser alterado pelas variáveis DB_HOST, DB_PORT, DB_NAME, DB_USER e DB_PASSWORD)
+- spring.datasource.url = jdbc:postgresql://localhost:5432/mercado_express
+- As tabelas são criadas pelo Flyway ao iniciar cada serviço:
+    public.TDS_Sec_MVC_TB_Mercado ...... produtos (agora com preco_custo)
+    public.TDS_Users_Mercado ........... usuários e perfis
+    public.TDS_Pedidos_Mercado ......... compras (status do pagamento e do e-mail)
+    public.TDS_Itens_Pedido_Mercado .... itens de cada compra
+    banco.TDS_Transacoes_Banco ......... transações do Banco Tranquilo
+    email.TDS_Emails_Mercado ........... controle de envio de e-mails aos clientes
+- RabbitMQ: amqp://guest:guest@localhost:5672 (painel http://localhost:15672, guest/guest)
+
+USUÁRIOS PARA TESTE
+- Administrador: admin@mercadoexpress.com   / senha: Admin@123
+- Cliente:       cliente@mercadoexpress.com / senha: Cliente@123
+
+EXEMPLO DE REQUISIÇÃO DE COMPRA EM JSON (Postman ou Insomnia)
+POST http://localhost:8080/api/pagamentos
+Autenticação: Basic Auth (usuário cliente@mercadoexpress.com / senha Cliente@123)
+Content-Type: application/json
+
+{
+    "formaPagamento": "PIX",
+    "itens": [
+        { "produtoId": 1, "quantidade": 2 },
+        { "produtoId": 6, "quantidade": 1 }
+    ]
+}
+
+Resposta: 202 Accepted com o número do pedido ("Pagamento aguardando confirmação do Banco Tranquilo...").
+Consultar o resultado: GET http://localhost:8080/api/pedidos/{numeroPedido}
+Formas de pagamento aceitas: PIX, CARTAO_CREDITO, CARTAO_DEBITO.
+
+SCRIPT DE TESTES
+- Coleção do Postman com testes automáticos: postman/Mercado-Express-CP5.postman_collection.json
+  (Import no Postman -> Run collection, ou: npx newman run postman/Mercado-Express-CP5.postman_collection.json)
+- Testes automatizados (JUnit): ./mvnw test
+
+COMO RODAR (detalhes no README)
+1) Subir PostgreSQL, RabbitMQ e Mailpit: docker compose up -d   (ou instalados na máquina)
+2) Rodar MercadoExpressApplication, BancoTranquiloApplication e EmailServiceApplication no IntelliJ
+3) Acessar http://localhost:8080
+
+ARQUIVOS ENVIADOS
+- Este .txt
+- cp5-java-advanced-parte2.zip (pasta completa do projeto)
+- Vídeo (link acima)
