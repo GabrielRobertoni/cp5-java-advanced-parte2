@@ -1,0 +1,54 @@
+# ==========================================================
+#  Banco Tranquilo - API de pagamentos (worker)
+#  Consome pagamento-request-queue e responde nas filas de
+#  sucesso ou erro. Não tem servidor web: só mensageria.
+# ==========================================================
+spring:
+  application:
+    name: banco-tranquilo
+  main:
+    web-application-type: none
+
+  # Mesmo servidor PostgreSQL, schema próprio "banco" (criado pelo Flyway)
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:mercado_express}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: banco
+  flyway:
+    schemas: banco
+    default-schema: banco
+    locations: classpath:db/migration
+
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:amqp://guest:guest@localhost:5672}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+
+# Regras da simulação do banco
+banco:
+  # Tempo de "processamento" de cada pagamento (deixa a resposta assíncrona visível)
+  tempo-processamento: ${BANCO_TEMPO_PROCESSAMENTO:2s}
+  # Compras acima deste valor são recusadas por limite
+  limite-por-transacao: ${BANCO_LIMITE:500.00}
+  # Probabilidade de aprovação das demais compras (0.0 a 1.0)
+  taxa-aprovacao: ${BANCO_TAXA_APROVACAO:0.85}
+
+logging:
+  level:
+    root: INFO
+    br.com.fiap.bancotranquilo: INFO
