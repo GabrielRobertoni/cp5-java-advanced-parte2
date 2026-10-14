@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Meus pedidos')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: cabecalho}"></header>
+
+<main class="container pagina">
+    <div class="pagina__cabecalho">
+        <div>
+            <h1>Meus pedidos</h1>
+            <p class="texto-suave">Acompanhe a confirmação do pagamento e o envio do e-mail de cada compra.</p>
+        </div>
+        <a th:href="@{/produtos}" class="botao">Comprar mais</a>
+    </div>
+
+    <div th:replace="~{fragments/layout :: mensagens}"></div>
+
+    <div th:if="${#lists.isEmpty(pedidos)}" class="vazio">
+        <p>Você ainda não fez nenhuma compra.</p>
+    </div>
+
+    <div class="tabela-container" th:unless="${#lists.isEmpty(pedidos)}">
+        <table class="tabela" data-testid="tabela-meus-pedidos">
+            <thead>
+            <tr>
+                <th>Pedido</th>
+                <th>Data</th>
+                <th class="numero">Itens</th>
+                <th class="numero">Total</th>
+                <th>Pagamento</th>
+                <th>E-mail</th>
+                <th class="acoes"></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${pedidos}">
+                <td><a th:href="@{/pedidos/{id}(id=${p.id})}" th:text="|#${p.id}|" class="link-forte">#1</a></td>
+                <td th:text="${#temporals.format(p.criadoEm, 'dd/MM/yyyy HH:mm')}">data</td>
+                <td class="numero" th:text="${p.quantidadeItens}">0</td>
+                <td class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(p.valorTotal, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                <td><span th:replace="~{fragments/pedido :: statusPagamento(${p})}"></span></td>
+                <td><span th:replace="~{fragments/pedido :: statusEmail(${p})}"></span></td>
+                <td class="acoes"><a th:href="@{/pedidos/{id}(id=${p.id})}" class="botao botao--pequeno botao--contorno">Detalhes</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: rodape}"></footer>
+</body>
+</html>

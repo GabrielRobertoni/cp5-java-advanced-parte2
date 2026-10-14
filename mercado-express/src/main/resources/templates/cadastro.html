@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Criar conta')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: cabecalho}"></header>
+
+<main class="container pagina-auth">
+    <section class="auth">
+        <div class="auth__lateral" aria-hidden="true">
+            <img th:src="@{/img/cesta.svg}" alt="" width="180" height="180">
+            <h2>Crie sua conta</h2>
+            <p>Com o cadastro você consulta preços, setores e estoque de todos os produtos.</p>
+        </div>
+
+        <div class="auth__formulario">
+            <h1>Sign Up</h1>
+            <p class="texto-suave">Preencha os dados abaixo para criar seu acesso.</p>
+
+            <div th:if="${param.semConta}" class="alerta alerta--info" role="status" data-testid="aviso-sem-conta">
+                Não encontramos uma conta com este e-mail. Cadastre-se para continuar.
+            </div>
+
+            <form th:action="@{/cadastro}" th:object="${cadastroForm}" method="post" class="formulario" novalidate>
+                <div class="campo" th:classappend="${#fields.hasErrors('nome')} ? 'campo--erro'">
+                    <label for="nome">Nome completo</label>
+                    <input type="text" id="nome" th:field="*{nome}" required maxlength="100" autocomplete="name"
+                           placeholder="Seu nome">
+                    <small class="erro" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></small>
+                </div>
+
+                <div class="campo" th:classappend="${#fields.hasErrors('email')} ? 'campo--erro'">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" th:field="*{email}" required maxlength="150" autocomplete="email"
+                           placeholder="voce@exemplo.com">
+                    <small class="erro" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></small>
+                </div>
+
+                <div class="campo" th:classappend="${#fields.hasErrors('senha') or #fields.hasErrors('senhaDentroDoLimiteBcrypt')} ? 'campo--erro'">
+                    <label for="senha">Senha</label>
+                    <div class="campo__senha">
+                        <input type="password" id="senha" th:field="*{senha}" required minlength="6" maxlength="72"
+                               autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+                        <button type="button" class="botao-icone" data-toggle-senha="senha"
+                                aria-label="Mostrar senha">Mostrar</button>
+                    </div>
+                    <small class="erro" th:if="${#fields.hasErrors('senha')}" th:errors="*{senha}"></small>
+                    <small class="erro" th:if="${#fields.hasErrors('senhaDentroDoLimiteBcrypt')}"
+                           th:errors="*{senhaDentroDoLimiteBcrypt}"></small>
+                </div>
+
+                <div class="campo" th:classappend="${#fields.hasErrors('confirmacaoSenha') or #fields.hasErrors('senhasConferem')} ? 'campo--erro'">
+                    <label for="confirmacaoSenha">Confirme a senha</label>
+                    <input type="password" id="confirmacaoSenha" th:field="*{confirmacaoSenha}" required
+                           autocomplete="new-password" placeholder="Repita a senha">
+                    <small class="erro" th:if="${#fields.hasErrors('confirmacaoSenha')}" th:errors="*{confirmacaoSenha}"></small>
+                    <small class="erro" th:if="${#fields.hasErrors('senhasConferem')}" th:errors="*{senhasConferem}"></small>
+                </div>
+
+                <button type="submit" class="botao botao--bloco">Criar conta</button>
+            </form>
+
+            <p class="auth__rodape">Já tem conta? <a th:href="@{/login}">Entrar</a></p>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: rodape}"></footer>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Início')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: cabecalho}"></header>
+
+<main>
+    <section class="hero">
+        <div class="container hero__conteudo">
+            <div class="hero__texto">
+                <p class="hero__chamada">Hortifruti &middot; Mercearia &middot; Frios &middot; Limpeza</p>
+                <h1>Seu mercado de bairro, <span class="destaque">rápido e seguro</span>.</h1>
+                <p class="hero__descricao">
+                    Monte seu carrinho e pague com Pix ou cartão: o pagamento é confirmado pelo
+                    <strong>Banco Tranquilo</strong> e você recebe o comprovante por e-mail. A gerência acompanha
+                    vendas, lucro e estoque em um dashboard.
+                </p>
+
+                <div th:if="${param.saiu}" class="alerta alerta--info" role="status">
+                    Você saiu da sua conta. Até logo!
+                </div>
+
+                <div class="hero__acoes" sec:authorize="!isAuthenticated()">
+                    <a th:href="@{/login}" class="botao botao--grande">Entrar</a>
+                    <a th:href="@{/cadastro}" class="botao botao--grande botao--contorno">Criar conta grátis</a>
+                </div>
+                <div sec:authorize="!isAuthenticated()" class="hero__credenciais">
+                    <div th:replace="~{fragments/layout :: credenciais(false)}"></div>
+                </div>
+                <div class="hero__acoes" sec:authorize="hasRole('ADMIN')">
+                    <a th:href="@{/admin/painel}" class="botao botao--grande">Ir para o dashboard</a>
+                    <a th:href="@{/produtos}" class="botao botao--grande botao--contorno">Ver produtos</a>
+                </div>
+                <div class="hero__acoes" sec:authorize="hasRole('CLIENTE')">
+                    <a th:href="@{/produtos}" class="botao botao--grande">Comprar agora</a>
+                    <a th:href="@{/pedidos}" class="botao botao--grande botao--contorno">Meus pedidos</a>
+                </div>
+            </div>
+            <div class="hero__imagem" aria-hidden="true">
+                <img th:src="@{/img/cesta.svg}" alt="" width="320" height="320">
+            </div>
+        </div>
+    </section>
+
+    <section class="container secao">
+        <h2 class="secao__titulo">Como funciona</h2>
+        <div class="grade grade--4">
+            <article class="cartao">
+                <span class="cartao__numero">1</span>
+                <h3>Crie sua conta</h3>
+                <p>Faça seu cadastro (Sign Up) com nome, e-mail e senha. Sua senha é guardada criptografada (BCrypt).</p>
+            </article>
+            <article class="cartao">
+                <span class="cartao__numero">2</span>
+                <h3>Monte o carrinho</h3>
+                <p>Escolha os produtos e as quantidades. O estoque é reservado quando você finaliza a compra.</p>
+            </article>
+            <article class="cartao">
+                <span class="cartao__numero">3</span>
+                <h3>Banco Tranquilo</h3>
+                <p>O pagamento vai para o banco por uma fila do RabbitMQ. A resposta chega sozinha na tela do pedido.</p>
+            </article>
+            <article class="cartao">
+                <span class="cartao__numero">4</span>
+                <h3>Comprovante por e-mail</h3>
+                <p>Pagamento aprovado? Você recebe o e-mail de confirmação com os itens e o código de autorização.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="container secao">
+        <h2 class="secao__titulo">Perfis de acesso</h2>
+        <div class="tabela-container">
+            <table class="tabela">
+                <thead>
+                <tr><th>Funcionalidade</th><th>Visitante</th><th>Cliente</th><th>Administrador</th></tr>
+                </thead>
+                <tbody>
+                <tr><td>Página inicial, login e cadastro</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+                <tr><td>Consultar e buscar produtos</td><td>&#10007;</td><td>&#10003;</td><td>&#10003;</td></tr>
+                <tr><td>Carrinho, compra e "Meus pedidos"</td><td>&#10007;</td><td>&#10003;</td><td>&#10003;</td></tr>
+                <tr><td>Cadastrar, editar e excluir produtos</td><td>&#10007;</td><td>&#10007;</td><td>&#10003;</td></tr>
+                <tr><td>Dashboard de vendas, compras realizadas e usuários</td><td>&#10007;</td><td>&#10007;</td><td>&#10003;</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: rodape}"></footer>
+</body>
+</html>

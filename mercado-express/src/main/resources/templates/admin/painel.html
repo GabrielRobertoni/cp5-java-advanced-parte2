@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Dashboard da gerência')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: cabecalho}"></header>
+
+<main class="container pagina">
+    <div class="pagina__cabecalho">
+        <div>
+            <h1>Dashboard da gerência</h1>
+            <p class="texto-suave">
+                Olá, <strong sec:authentication="principal.nome">admin</strong>! Vendas, lucro e estoque do
+                Mercado Express, com os pagamentos confirmados pelo Banco Tranquilo.
+            </p>
+        </div>
+        <div class="pagina__acoes">
+            <a th:href="@{/admin/pedidos}" class="botao botao--contorno">Compras realizadas</a>
+            <a th:href="@{/produtos/novo}" class="botao">+ Novo produto</a>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: mensagens}"></div>
+
+    <section class="grade grade--4 indicadores" aria-label="Indicadores de vendas" th:with="i=${indicadores}">
+        <article class="indicador">
+            <span class="indicador__rotulo">Faturamento (pedidos pagos)</span>
+            <strong class="indicador__valor" data-testid="kpi-faturamento"
+                    th:text="'R$ ' + ${#numbers.formatDecimal(i.faturamento, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+        </article>
+        <article class="indicador indicador--lucro">
+            <span class="indicador__rotulo" th:text="|Lucro (margem de ${#numbers.formatDecimal(i.margemPercentual, 1, 'POINT', 1, 'COMMA')}%)|">Lucro</span>
+            <strong class="indicador__valor" data-testid="kpi-lucro"
+                    th:text="'R$ ' + ${#numbers.formatDecimal(i.lucro, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+        </article>
+        <article class="indicador">
+            <span class="indicador__rotulo">Pedidos pagos / recusados / aguardando</span>
+            <strong class="indicador__valor" data-testid="kpi-pedidos"
+                    th:text="|${i.pedidosPagos} / ${i.pedidosRecusados} / ${i.pedidosAguardando}|">0 / 0 / 0</strong>
+        </article>
+        <article class="indicador">
+            <span class="indicador__rotulo">Ticket médio</span>
+            <strong class="indicador__valor"
+                    th:text="'R$ ' + ${#numbers.formatDecimal(i.ticketMedio, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+        </article>
+        <article class="indicador">
+            <span class="indicador__rotulo">Unidades vendidas</span>
+            <strong class="indicador__valor" th:text="${i.unidadesVendidas}">0</strong>
+        </article>
+        <article class="indicador">
+            <span class="indicador__rotulo">Unidades em estoque</span>
+            <strong class="indicador__valor" th:text="${i.unidadesEmEstoque}">0</strong>
+        </article>
+        <article class="indicador">
+            <span class="indicador__rotulo">Valor em estoque (preço de venda)</span>
+            <strong class="indicador__valor"
+                    th:text="'R$ ' + ${#numbers.formatDecimal(i.valorEmEstoque, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+        </article>
+        <article class="indicador">
+            <span class="indicador__rotulo">E-mails enviados / com erro</span>
+            <strong class="indicador__valor" data-testid="kpi-emails"
+                    th:text="|${i.emailsEnviados} / ${i.emailsComErro}|">0 / 0</strong>
+        </article>
+    </section>
+
+    <!-- Gráficos (Chart.js), alimentados por GET /admin/painel/dados -->
+    <section class="grade grade--2 secao graficos" th:attr="data-dashboard=@{/admin/painel/dados}">
+        <article class="cartao grafico">
+            <h2>Vendas dos últimos 7 dias</h2>
+            <p class="texto-suave">Receita e lucro por dia (pagamentos confirmados).</p>
+            <div class="grafico__area"><canvas id="grafico-vendas-dia" aria-label="Vendas por dia" role="img"></canvas></div>
+        </article>
+        <article class="cartao grafico">
+            <h2>Receita x lucro por setor</h2>
+            <p class="texto-suave">Quanto cada setor do mercado vendeu e lucrou.</p>
+            <div class="grafico__area"><canvas id="grafico-setores" aria-label="Receita e lucro por setor" role="img"></canvas></div>
+        </article>
+        <article class="cartao grafico">
+            <h2>Produtos mais vendidos</h2>
+            <p class="texto-suave">Top 5 em unidades vendidas.</p>
+            <div class="grafico__area"><canvas id="grafico-top-produtos" aria-label="Produtos mais vendidos" role="img"></canvas></div>
+        </article>
+        <article class="cartao grafico">
+            <h2>Pagamentos no Banco Tranquilo</h2>
+            <p class="texto-suave">Situação de todos os pedidos.</p>
+            <div class="grafico__area"><canvas id="grafico-status" aria-label="Status dos pagamentos" role="img"></canvas></div>
+        </article>
+        <article class="cartao grafico grafico--largo">
+            <h2>Estoque atual</h2>
+            <p class="texto-suave">Unidades disponíveis por produto (em laranja: estoque baixo, menos de 5).</p>
+            <div class="grafico__area grafico__area--alta"><canvas id="grafico-estoque" aria-label="Estoque por produto" role="img"></canvas></div>
+        </article>
+    </section>
+
+    <section class="grade grade--2 secao">
+        <article class="cartao">
+            <h2>Últimas compras</h2>
+            <p th:if="${#lists.isEmpty(ultimosPedidos)}" class="texto-suave">Nenhuma compra ainda.</p>
+            <ul class="lista-simples" th:unless="${#lists.isEmpty(ultimosPedidos)}" data-testid="ultimas-compras">
+                <li th:each="p : ${ultimosPedidos}">
+                    <span>
+                        <a th:href="@{/pedidos/{id}(id=${p.id})}" th:text="|#${p.id}|">#1</a>
+                        <span th:text="${p.clienteNome}">Cliente</span>
+                        <span class="texto-suave" th:text="'R$ ' + ${#numbers.formatDecimal(p.valorTotal, 1, 'POINT', 2, 'COMMA')}">R$</span>
+                    </span>
+                    <span th:replace="~{fragments/pedido :: statusPagamento(${p})}"></span>
+                </li>
+            </ul>
+            <p><a th:href="@{/admin/pedidos}">Ver todas as compras &rarr;</a></p>
+        </article>
+
+        <article class="cartao">
+            <h2>Produtos com estoque baixo</h2>
+            <p class="texto-suave" th:text="|Clientes: ${totalClientes} · Administradores: ${totalAdmins}|">usuários</p>
+            <p th:if="${#lists.isEmpty(estoqueBaixo)}">Nenhum produto com estoque baixo. &#128077;</p>
+            <ul class="lista-simples" th:unless="${#lists.isEmpty(estoqueBaixo)}" data-testid="lista-estoque-baixo">
+                <li th:each="p : ${estoqueBaixo}">
+                    <a th:href="@{/produtos/{id}/editar(id=${p.id})}" th:text="${p.nome}">Produto</a>
+                    <span class="selo selo--alerta" th:text="${p.quantidadeEstoque} + ' un.'">0 un.</span>
+                </li>
+            </ul>
+        </article>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: rodape}"></footer>
+<script th:src="@{/js/vendor/chart.umd.min.js}"></script>
+<script th:src="@{/js/dashboard.js}"></script>
+</body>
+</html>

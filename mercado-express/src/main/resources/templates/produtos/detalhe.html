@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head(${produto.nome})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: cabecalho}"></header>
+
+<main class="container pagina">
+    <p><a th:href="@{/produtos}" class="link-voltar">&larr; Voltar para produtos</a></p>
+
+    <div th:replace="~{fragments/layout :: mensagens}"></div>
+
+    <article class="detalhe" data-testid="detalhe-produto">
+        <header class="detalhe__cabecalho">
+            <div>
+                <span class="etiqueta" th:text="${produto.setor}">Setor</span>
+                <h1 th:text="${produto.nome}">Produto</h1>
+                <p class="texto-suave" th:text="${produto.descricao} ?: 'Sem descrição.'">Descrição</p>
+            </div>
+            <p class="detalhe__preco" th:text="'R$ ' + ${#numbers.formatDecimal(produto.preco, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</p>
+        </header>
+
+        <dl class="detalhe__dados">
+            <div><dt>Código</dt><dd th:text="${produto.id}">1</dd></div>
+            <div><dt>Tipo</dt><dd th:text="${produto.tipo}">Tipo</dd></div>
+            <div><dt>Setor</dt><dd th:text="${produto.setor}">Setor</dd></div>
+            <div><dt>Tamanho</dt><dd th:text="${produto.tamanho} ?: '—'">—</dd></div>
+            <div>
+                <dt>Estoque</dt>
+                <dd>
+                    <span th:text="${produto.quantidadeEstoque} + ' un.'">0 un.</span>
+                    <span th:if="${produto.estoqueBaixo}" class="selo selo--alerta">estoque baixo</span>
+                </dd>
+            </div>
+            <div sec:authorize="hasRole('ADMIN')">
+                <dt>Custo / margem</dt>
+                <dd th:text="'R$ ' + ${#numbers.formatDecimal(produto.precoCusto, 1, 'POINT', 2, 'COMMA')}
+                        + ' (lucro de R$ ' + ${#numbers.formatDecimal(produto.preco - produto.precoCusto, 1, 'POINT', 2, 'COMMA')} + ' por unidade)'">—</dd>
+            </div>
+            <div><dt>Atualizado em</dt><dd th:text="${#temporals.format(produto.atualizadoEm, 'dd/MM/yyyy HH:mm')}">—</dd></div>
+        </dl>
+
+        <form th:if="${produto.disponivel}" th:action="@{/carrinho/itens}" method="post" class="comprar"
+              data-testid="form-comprar-detalhe">
+            <input type="hidden" name="produtoId" th:value="${produto.id}">
+            <input type="hidden" name="voltarPara" th:value="|/produtos/${produto.id}|">
+            <label for="quantidade">Quantidade</label>
+            <input type="number" id="quantidade" name="quantidade" value="1" min="1"
+                   th:max="${produto.quantidadeEstoque < 99 ? produto.quantidadeEstoque : 99}" class="campo-qtd">
+            <button type="submit" class="botao">Adicionar ao carrinho</button>
+            <a th:href="@{/carrinho}" class="botao botao--contorno">Ver carrinho</a>
+        </form>
+        <p th:unless="${produto.disponivel}" class="alerta alerta--info">Produto esgotado no momento.</p>
+
+        <footer class="detalhe__acoes" sec:authorize="hasRole('ADMIN')">
+            <a th:href="@{/produtos/{id}/editar(id=${produto.id})}" class="botao">Editar</a>
+            <form th:action="@{/produtos/{id}(id=${produto.id})}" th:method="delete" class="form-inline"
+                  th:attr="data-confirm=|Excluir o produto ${produto.nome}?|">
+                <button type="submit" class="botao botao--perigo">Excluir</button>
+            </form>
+        </footer>
+    </article>
+</main>
+
+<footer th:replace="~{fragments/layout :: rodape}"></footer>
+</body>
+</html>

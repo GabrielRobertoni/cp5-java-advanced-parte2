@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Selo com o status do pagamento -->
+<span th:fragment="statusPagamento(pedido)" class="selo"
+      th:classappend="${pedido.status.name() == 'PAGO'} ? 'selo--ok' : (${pedido.status.name() == 'RECUSADO'} ? 'selo--erro' : 'selo--aguardando')"
+      th:text="${pedido.status.descricao}" data-status>Status</span>
+
+<!-- Selo com o status do e-mail de confirmação -->
+<span th:fragment="statusEmail(pedido)" class="selo"
+      th:classappend="${pedido.emailStatus.name() == 'ENVIADO'} ? 'selo--ok' : (${pedido.emailStatus.name() == 'ERRO'} ? 'selo--erro' : (${pedido.emailStatus.name() == 'NAO_APLICAVEL'} ? '' : 'selo--aguardando'))"
+      th:text="${pedido.emailStatus.descricao}" data-email>E-mail</span>
+
+</body>
+</html>

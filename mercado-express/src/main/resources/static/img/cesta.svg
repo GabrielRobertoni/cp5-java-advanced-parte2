@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="320" height="320" role="img" aria-label="Cesta de compras">
+  <circle cx="160" cy="160" r="150" fill="#ffffff" fill-opacity="0.12"/>
+  <!-- frutas -->
+  <circle cx="118" cy="128" r="34" fill="#f2504b"/>
+  <path d="M118 96c4-14 14-20 24-20" stroke="#17694a" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <ellipse cx="190" cy="118" rx="44" ry="20" transform="rotate(-25 190 118)" fill="#ffd23f"/>
+  <circle cx="162" cy="140" r="26" fill="#f28c28"/>
+  <path d="M212 96c10 6 18 18 18 30" stroke="#2fbf71" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <!-- cesta -->
+  <path d="M60 150h200l-22 104a14 14 0 0 1-14 11H96a14 14 0 0 1-14-11z" fill="#ffffff"/>
+  <path d="M60 150h200" stroke="#0f3d2e" stroke-width="10" stroke-linecap="round"/>
+  <path d="M110 180v60M160 180v60M210 180v60" stroke="#23a26f" stroke-width="10" stroke-linecap="round"/>
+</svg>

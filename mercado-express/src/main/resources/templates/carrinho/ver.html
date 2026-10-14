@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Carrinho')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: cabecalho}"></header>
+
+<main class="container pagina">
+    <div class="pagina__cabecalho">
+        <div>
+            <h1>Carrinho</h1>
+            <p class="texto-suave">Confira os produtos e finalize a compra. O pagamento é confirmado pelo Banco Tranquilo.</p>
+        </div>
+        <a th:href="@{/produtos}" class="botao botao--contorno">Continuar comprando</a>
+    </div>
+
+    <div th:replace="~{fragments/layout :: mensagens}"></div>
+
+    <div th:if="${carrinho.vazio}" class="vazio" data-testid="carrinho-vazio">
+        <p>Seu carrinho está vazio.</p>
+        <a th:href="@{/produtos}" class="botao">Ver produtos</a>
+    </div>
+
+    <th:block th:unless="${carrinho.vazio}">
+        <div class="tabela-container">
+            <table class="tabela" data-testid="tabela-carrinho">
+                <thead>
+                <tr>
+                    <th>Produto</th>
+                    <th class="numero">Preço</th>
+                    <th>Quantidade</th>
+                    <th class="numero">Subtotal</th>
+                    <th class="acoes">Remover</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="item : ${carrinho.itens}">
+                    <td>
+                        <a th:href="@{/produtos/{id}(id=${item.produto.id})}" th:text="${item.produto.nome}"
+                           class="link-forte">Produto</a>
+                        <span class="texto-suave" th:text="${item.produto.tamanho}"></span>
+                        <span th:unless="${item.estoqueSuficiente}" class="selo selo--alerta"
+                              th:text="|só ${item.produto.quantidadeEstoque} em estoque|">estoque</span>
+                    </td>
+                    <td class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(item.produto.preco, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                    <td>
+                        <form th:action="@{/carrinho/itens/{id}(id=${item.produto.id})}" th:method="put" class="form-inline">
+                            <label class="sr-only" th:for="|qtd-${item.produto.id}|">Quantidade</label>
+                            <input type="number" th:id="|qtd-${item.produto.id}|" name="quantidade"
+                                   th:value="${item.quantidade}" min="1" max="99" class="campo-qtd">
+                            <button type="submit" class="botao botao--pequeno botao--contorno">Atualizar</button>
+                        </form>
+                    </td>
+                    <td class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(item.subtotal, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                    <td class="acoes">
+                        <form th:action="@{/carrinho/itens/{id}(id=${item.produto.id})}" th:method="delete" class="form-inline">
+                            <button type="submit" class="botao botao--pequeno botao--perigo">Remover</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+                <tfoot>
+                <tr>
+                    <th colspan="3" class="numero" th:text="|Total (${carrinho.quantidadeTotal} itens)|">Total</th>
+                    <th class="numero" data-testid="total-carrinho"
+                        th:text="'R$ ' + ${#numbers.formatDecimal(carrinho.total, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</th>
+                    <th></th>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <form th:action="@{/carrinho/finalizar}" method="post" class="cartao checkout" data-testid="form-finalizar">
+            <h2>Pagamento</h2>
+            <fieldset class="opcoes-pagamento">
+                <legend class="sr-only">Forma de pagamento</legend>
+                <label th:each="forma, iter : ${formasPagamento}" class="opcao">
+                    <input type="radio" name="formaPagamento" th:value="${forma.name()}" th:checked="${iter.first}">
+                    <span th:text="${forma.descricao}">Pix</span>
+                </label>
+            </fieldset>
+            <p class="texto-suave">
+                Ao finalizar, o pedido é enviado ao <strong>Banco Tranquilo</strong> pela fila do RabbitMQ.
+                Quando o banco confirmar, você recebe um e-mail de confirmação do pagamento.
+            </p>
+            <p th:unless="${carrinho.podeFinalizar}" class="alerta alerta--erro">
+                Ajuste as quantidades: há produto com estoque insuficiente.
+            </p>
+            <button type="submit" class="botao botao--grande" th:disabled="${!carrinho.podeFinalizar}"
+                    th:text="'Finalizar compra - R$ ' + ${#numbers.formatDecimal(carrinho.total, 1, 'POINT', 2, 'COMMA')}">
+                Finalizar compra
+            </button>
+        </form>
+    </th:block>
+</main>
+
+<footer th:replace="~{fragments/layout :: rodape}"></footer>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Compras realizadas')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: cabecalho}"></header>
+
+<main class="container pagina">
+    <div class="pagina__cabecalho">
+        <div>
+            <h1>Compras realizadas</h1>
+            <p class="texto-suave">
+                Pedidos da tabela <code>TDS_Pedidos_Mercado</code>: retorno do Banco Tranquilo e controle do
+                e-mail de confirmação enviado ao cliente.
+            </p>
+        </div>
+        <a th:href="@{/admin/painel}" class="botao botao--contorno">Dashboard</a>
+    </div>
+
+    <div th:replace="~{fragments/layout :: mensagens}"></div>
+
+    <div th:if="${#lists.isEmpty(pedidos)}" class="vazio"><p>Nenhuma compra ainda.</p></div>
+
+    <div class="tabela-container" th:unless="${#lists.isEmpty(pedidos)}">
+        <table class="tabela" data-testid="tabela-compras">
+            <thead>
+            <tr>
+                <th>Pedido</th>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>Canal</th>
+                <th class="numero">Total</th>
+                <th class="numero">Lucro</th>
+                <th>Pagamento</th>
+                <th>E-mail</th>
+                <th class="acoes"></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${pedidos}">
+                <td><a th:href="@{/pedidos/{id}(id=${p.id})}" th:text="|#${p.id}|" class="link-forte">#1</a></td>
+                <td th:text="${#temporals.format(p.criadoEm, 'dd/MM HH:mm')}">data</td>
+                <td>
+                    <span th:text="${p.clienteNome}">Cliente</span><br>
+                    <small class="texto-suave" th:text="${p.clienteEmail}">email</small>
+                </td>
+                <td><span class="etiqueta" th:text="${p.canal}">WEB</span></td>
+                <td class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(p.valorTotal, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                <td class="numero" th:text="${p.pago} ? 'R$ ' + ${#numbers.formatDecimal(p.lucro, 1, 'POINT', 2, 'COMMA')} : '—'">—</td>
+                <td>
+                    <span th:replace="~{fragments/pedido :: statusPagamento(${p})}"></span>
+                    <small class="texto-suave d-bloco" th:if="${p.codigoAutorizacao}" th:text="${p.codigoAutorizacao}">aut</small>
+                    <small class="texto-suave d-bloco" th:if="${p.motivoRecusa}" th:text="${p.motivoRecusa}">motivo</small>
+                </td>
+                <td>
+                    <span th:replace="~{fragments/pedido :: statusEmail(${p})}"></span>
+                    <small class="texto-suave d-bloco" th:if="${p.emailErro}" th:text="${#strings.abbreviate(p.emailErro, 60)}"
+                           th:title="${p.emailErro}">erro</small>
+                </td>
+                <td class="acoes">
+                    <form th:if="${p.pago}" th:action="@{/admin/pedidos/{id}/reenviar-email(id=${p.id})}" method="post"
+                          class="form-inline" th:attr="data-confirm=|Enviar de novo o e-mail do pedido #${p.id}?|">
+                        <button type="submit" class="botao botao--pequeno botao--contorno">Reenviar e-mail</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: rodape}"></footer>
+</body>
+</html>

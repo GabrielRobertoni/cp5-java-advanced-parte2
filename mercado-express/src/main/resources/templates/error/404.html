@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Página não encontrada')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: cabecalho}"></header>
+
+<main class="container pagina pagina--centro">
+    <div class="erro-pagina" data-testid="pagina-404">
+        <p class="erro-pagina__codigo">404</p>
+        <h1>Não encontramos o que você procura</h1>
+        <p class="texto-suave">O endereço pode estar errado ou o item foi removido.</p>
+        <a th:href="@{/}" class="botao">Voltar ao início</a>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: rodape}"></footer>
+</body>
+</html>

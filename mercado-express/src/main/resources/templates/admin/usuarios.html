@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Usuários')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: cabecalho}"></header>
+
+<main class="container pagina">
+    <div class="pagina__cabecalho">
+        <div>
+            <h1>Usuários</h1>
+            <p class="texto-suave">Contas da tabela <code>TDS_Users_Mercado</code>. Promova clientes a administradores ou remova acessos.</p>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: mensagens}"></div>
+
+    <div class="tabela-container">
+        <table class="tabela" data-testid="tabela-usuarios">
+            <thead>
+            <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Perfil</th>
+                <th>Cadastrado em</th>
+                <th class="acoes">Ações</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="u : ${usuarios}"
+                th:with="ehVoce=${#authentication.principal.email == u.email},
+                         protegida=${contasDemonstracao.isProtegida(u.email)}">
+                <td>
+                    <span th:text="${u.nome}">Nome</span>
+                    <span th:if="${ehVoce}" class="selo">você</span>
+                    <span th:if="${protegida}" class="selo selo--alerta">conta de avaliação</span>
+                </td>
+                <td th:text="${u.email}">email</td>
+                <td>
+                    <span class="selo" th:classappend="${u.perfil.name() == 'ADMIN'} ? 'selo--admin' : 'selo--cliente'"
+                          th:text="${u.perfil.descricao}">Perfil</span>
+                </td>
+                <td th:text="${#temporals.format(u.criadoEm, 'dd/MM/yyyy HH:mm')}">data</td>
+                <td class="acoes">
+                    <th:block th:unless="${ehVoce or protegida}">
+                        <form th:action="@{/admin/usuarios/{id}/perfil(id=${u.id})}" th:method="put" class="form-inline">
+                            <input type="hidden" name="perfil"
+                                   th:value="${u.perfil.name() == 'ADMIN'} ? 'CLIENTE' : 'ADMIN'">
+                            <button type="submit" class="botao botao--pequeno botao--contorno"
+                                    th:text="${u.perfil.name() == 'ADMIN'} ? 'Tornar cliente' : 'Tornar administrador'">Alterar</button>
+                        </form>
+                        <form th:action="@{/admin/usuarios/{id}(id=${u.id})}" th:method="delete" class="form-inline"
+                              th:attr="data-confirm=|Excluir o usuário ${u.nome}?|">
+                            <button type="submit" class="botao botao--pequeno botao--perigo">Excluir</button>
+                        </form>
+                    </th:block>
+                    <span th:if="${ehVoce or protegida}" class="texto-suave">—</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: rodape}"></footer>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head(|Pedido #${pedido.id}|)}"></head>
+<body>
+<header th:replace="~{fragments/layout :: cabecalho}"></header>
+
+<main class="container pagina pagina--estreita">
+    <p><a th:href="@{/pedidos}" class="link-voltar">&larr; Meus pedidos</a></p>
+
+    <div th:replace="~{fragments/layout :: mensagens}"></div>
+
+    <!-- data-acompanhar: enquanto o banco não responder, o app.js consulta o status a cada 2 segundos -->
+    <article class="cartao pedido" data-testid="detalhe-pedido"
+             th:attr="data-acompanhar=${pedido.aguardandoPagamento or pedido.emailStatus.name() == 'PENDENTE' or pedido.emailStatus.name() == 'SOLICITADO'} ? @{/pedidos/{id}/status(id=${pedido.id})} : null">
+        <header class="pedido__cabecalho">
+            <div>
+                <h1 th:text="|Pedido #${pedido.id}|">Pedido</h1>
+                <p class="texto-suave" th:text="|Feito em ${#temporals.format(pedido.criadoEm, 'dd/MM/yyyy HH:mm')} pelo ${pedido.canal == T(br.com.fiap.mercadoexpress.model.CanalVenda).API ? 'API REST' : 'site'}|">data</p>
+            </div>
+            <span th:replace="~{fragments/pedido :: statusPagamento(${pedido})}"></span>
+        </header>
+
+        <ol class="linha-tempo" aria-label="Andamento do pedido">
+            <li class="feito">Pedido recebido pelo Mercado Express</li>
+            <li th:classappend="${pedido.pagamentoEnviadoEm != null} ? 'feito'">Pagamento enviado ao Banco Tranquilo (RabbitMQ)</li>
+            <li data-etapa="banco"
+                th:classappend="${pedido.pago} ? 'feito' : (${pedido.status.name() == 'RECUSADO'} ? 'falhou')"
+                th:text="${pedido.status.name() == 'RECUSADO'} ? |Pagamento recusado: ${pedido.motivoRecusa}| : 'Pagamento confirmado pelo banco'">
+                Pagamento confirmado pelo banco</li>
+            <li data-etapa="email"
+                th:classappend="${pedido.emailStatus.name() == 'ENVIADO'} ? 'feito' : (${pedido.emailStatus.name() == 'ERRO'} ? 'falhou')"
+                th:text="${pedido.emailStatus.name() == 'ERRO'} ? 'Falha ao enviar o e-mail de confirmação' : |E-mail de confirmação enviado para ${pedido.clienteEmail}|">
+                E-mail de confirmação enviado</li>
+        </ol>
+
+        <p class="alerta alerta--info aguardando" th:if="${pedido.aguardandoPagamento}" data-aguardando>
+            Aguardando a resposta do Banco Tranquilo... esta página se atualiza sozinha.
+        </p>
+
+        <dl class="detalhe__dados">
+            <div><dt>Forma de pagamento</dt><dd th:text="${pedido.formaPagamento.descricao}">Pix</dd></div>
+            <div><dt>Transação</dt><dd><code th:text="${pedido.transacaoId}">uuid</code></dd></div>
+            <div><dt>Autorização</dt><dd data-autorizacao th:text="${pedido.codigoAutorizacao} ?: '—'">—</dd></div>
+            <div><dt>E-mail</dt><dd><span th:replace="~{fragments/pedido :: statusEmail(${pedido})}"></span></dd></div>
+        </dl>
+
+        <div class="tabela-container">
+            <table class="tabela tabela--compacta">
+                <thead>
+                <tr><th>Produto</th><th class="numero">Qtd.</th><th class="numero">Preço</th><th class="numero">Subtotal</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="item : ${pedido.itens}">
+                    <td th:text="${item.produtoNome}">Produto</td>
+                    <td class="numero" th:text="${item.quantidade}">1</td>
+                    <td class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(item.precoUnitario, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                    <td class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(item.subtotal, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                </tr>
+                </tbody>
+                <tfoot>
+                <tr>
+                    <th colspan="3" class="numero">Total</th>
+                    <th class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(pedido.valorTotal, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</th>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+    </article>
+</main>
+
+<footer th:replace="~{fragments/layout :: rodape}"></footer>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${produto.id == null} ? 'Novo produto' : 'Editar produto')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: cabecalho}"></header>
+
+<main class="container pagina pagina--estreita">
+    <p><a th:href="${produto.id == null} ? @{/produtos} : @{/produtos/{id}(id=${produto.id})}"
+          class="link-voltar">&larr; Voltar</a></p>
+
+    <h1 th:text="${produto.id == null} ? 'Novo produto' : 'Editar produto'">Produto</h1>
+    <p class="texto-suave" th:text="${produto.id == null}
+        ? 'Cadastre um novo item no catálogo (CREATE).'
+        : 'Altere os dados e salve (UPDATE).'">Descrição</p>
+
+    <form th:action="${produto.id == null} ? @{/produtos} : @{/produtos/{id}(id=${produto.id})}"
+          th:method="${produto.id == null} ? 'post' : 'put'"
+          th:object="${produto}" class="formulario cartao" novalidate data-testid="form-produto">
+
+        <div th:if="${#fields.hasAnyErrors()}" class="alerta alerta--erro" role="alert">
+            Corrija os campos destacados.
+        </div>
+
+        <div class="grade grade--2">
+            <div class="campo" th:classappend="${#fields.hasErrors('nome')} ? 'campo--erro'">
+                <label for="nome">Nome *</label>
+                <input type="text" id="nome" th:field="*{nome}" maxlength="100" required placeholder="Ex.: Banana Prata">
+                <small class="erro" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></small>
+            </div>
+
+            <div class="campo" th:classappend="${#fields.hasErrors('tipo')} ? 'campo--erro'">
+                <label for="tipo">Tipo *</label>
+                <input type="text" id="tipo" th:field="*{tipo}" maxlength="50" required placeholder="Ex.: Fruta">
+                <small class="erro" th:if="${#fields.hasErrors('tipo')}" th:errors="*{tipo}"></small>
+            </div>
+
+            <div class="campo" th:classappend="${#fields.hasErrors('setor')} ? 'campo--erro'">
+                <label for="setor">Setor *</label>
+                <input type="text" id="setor" th:field="*{setor}" maxlength="50" required list="lista-setores"
+                       placeholder="Ex.: Hortifruti">
+                <datalist id="lista-setores">
+                    <option th:each="s : ${setores}" th:value="${s}"></option>
+                </datalist>
+                <small class="erro" th:if="${#fields.hasErrors('setor')}" th:errors="*{setor}"></small>
+            </div>
+
+            <div class="campo" th:classappend="${#fields.hasErrors('tamanho')} ? 'campo--erro'">
+                <label for="tamanho">Tamanho / embalagem</label>
+                <input type="text" id="tamanho" th:field="*{tamanho}" maxlength="30" placeholder="Ex.: 1 kg, 500 ml">
+                <small class="erro" th:if="${#fields.hasErrors('tamanho')}" th:errors="*{tamanho}"></small>
+            </div>
+
+            <div class="campo" th:classappend="${#fields.hasErrors('preco')} ? 'campo--erro'">
+                <label for="preco">Preço (R$) *</label>
+                <input type="number" id="preco" th:field="*{preco}" min="0.01" step="0.01" required placeholder="0.00">
+                <small class="erro" th:if="${#fields.hasErrors('preco')}" th:errors="*{preco}"></small>
+            </div>
+
+            <div class="campo" th:classappend="${#fields.hasErrors('precoCusto') or #fields.hasErrors('custoValido')} ? 'campo--erro'">
+                <label for="precoCusto">Custo (R$) *</label>
+                <input type="number" id="precoCusto" th:field="*{precoCusto}" min="0" step="0.01" required placeholder="0.00">
+                <small class="texto-suave">Quanto o mercado paga pelo produto (usado no cálculo do lucro).</small>
+                <small class="erro" th:if="${#fields.hasErrors('precoCusto')}" th:errors="*{precoCusto}"></small>
+                <small class="erro" th:if="${#fields.hasErrors('custoValido')}" th:errors="*{custoValido}"></small>
+            </div>
+
+            <div class="campo" th:classappend="${#fields.hasErrors('quantidadeEstoque')} ? 'campo--erro'">
+                <label for="quantidadeEstoque">Quantidade em estoque *</label>
+                <input type="number" id="quantidadeEstoque" th:field="*{quantidadeEstoque}" min="0" step="1" required>
+                <small class="erro" th:if="${#fields.hasErrors('quantidadeEstoque')}" th:errors="*{quantidadeEstoque}"></small>
+            </div>
+        </div>
+
+        <div class="campo" th:classappend="${#fields.hasErrors('descricao')} ? 'campo--erro'">
+            <label for="descricao">Descrição</label>
+            <textarea id="descricao" th:field="*{descricao}" maxlength="255" rows="3"
+                      placeholder="Detalhes do produto (opcional)"></textarea>
+            <small class="erro" th:if="${#fields.hasErrors('descricao')}" th:errors="*{descricao}"></small>
+        </div>
+
+        <div class="formulario__acoes">
+            <button type="submit" class="botao" th:text="${produto.id == null} ? 'Cadastrar produto' : 'Salvar alterações'">Salvar</button>
+            <a th:href="@{/produtos}" class="botao botao--contorno">Cancelar</a>
+        </div>
+    </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: rodape}"></footer>
+</body>
+</html>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Mercado Express">
+  <rect width="64" height="64" rx="16" fill="#1e8a5f"/>
+  <path d="M14 22h36l-4 22a4 4 0 0 1-4 3H22a4 4 0 0 1-4-3z" fill="#ffffff"/>
+  <path d="M22 22l6-10M42 22l-6-10" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <path d="M25 30v10M32 30v10M39 30v10" stroke="#1e8a5f" stroke-width="3" stroke-linecap="round"/>
+</svg>

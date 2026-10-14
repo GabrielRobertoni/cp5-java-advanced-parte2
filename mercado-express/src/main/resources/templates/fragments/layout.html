@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(titulo)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Mercado Express - CP5 Java Advanced (Spring Security MVC)">
+    <title th:text="${titulo} + ' | Mercado Express'">Mercado Express</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+
+<!-- ===================== Cabeçalho / menu ===================== -->
+<header th:fragment="cabecalho" class="topo">
+    <div class="container topo__conteudo">
+        <a class="marca" th:href="@{/}">
+            <img th:src="@{/img/logo.svg}" alt="" class="marca__logo" width="36" height="36">
+            <span class="marca__nome">Mercado <strong>Express</strong></span>
+        </a>
+
+        <button class="menu-toggle" type="button" aria-controls="menu-principal" aria-expanded="false"
+                data-menu-toggle>
+            <span class="sr-only">Abrir menu</span>&#9776;
+        </button>
+
+        <nav id="menu-principal" class="menu" aria-label="Menu principal">
+            <a sec:authorize="!isAuthenticated()" th:href="@{/}" class="menu__link">Início</a>
+
+            <th:block sec:authorize="isAuthenticated()">
+                <a th:href="@{/produtos}" class="menu__link">Produtos</a>
+                <a th:href="@{/pedidos}" class="menu__link">Meus pedidos</a>
+            </th:block>
+            <th:block sec:authorize="hasRole('ADMIN')">
+                <a th:href="@{/admin/painel}" class="menu__link">Dashboard</a>
+                <a th:href="@{/admin/pedidos}" class="menu__link">Compras</a>
+                <a th:href="@{/admin/usuarios}" class="menu__link">Usuários</a>
+            </th:block>
+            <a sec:authorize="isAuthenticated()" th:href="@{/carrinho}" class="menu__link menu__carrinho"
+               data-testid="link-carrinho">
+                Carrinho
+                <span class="contador" th:if="${itensNoCarrinho != null and itensNoCarrinho > 0}"
+                      th:text="${itensNoCarrinho}">0</span>
+            </a>
+
+            <th:block sec:authorize="isAuthenticated()">
+                <span class="usuario" data-testid="usuario-logado">
+                    <span class="usuario__nome" sec:authentication="principal.nome">Nome</span>
+                    <span class="selo"
+                          th:classappend="${#authorization.expression('hasRole(''ADMIN'')')} ? 'selo--admin' : 'selo--cliente'"
+                          th:text="${#authorization.expression('hasRole(''ADMIN'')')} ? 'Administrador' : 'Cliente'">Perfil</span>
+                </span>
+                <form th:action="@{/logout}" method="post" class="form-inline">
+                    <button type="submit" class="botao botao--contorno botao--pequeno">Sair</button>
+                </form>
+            </th:block>
+
+            <th:block sec:authorize="!isAuthenticated()">
+                <a th:href="@{/login}" class="menu__link">Entrar</a>
+                <a th:href="@{/cadastro}" class="botao botao--pequeno">Criar conta</a>
+            </th:block>
+        </nav>
+    </div>
+</header>
+
+<!-- ===================== Mensagens (flash) ===================== -->
+<div th:fragment="mensagens" class="mensagens">
+    <div th:if="${sucesso}" class="alerta alerta--sucesso" role="status" th:text="${sucesso}">Sucesso</div>
+    <div th:if="${erro}" class="alerta alerta--erro" role="alert" th:text="${erro}">Erro</div>
+</div>
+
+<!-- ===================== Contas de acesso para avaliação ===================== -->
+<section th:fragment="credenciais(preencher)" class="credenciais" data-testid="credenciais"
+         aria-labelledby="titulo-credenciais">
+    <h2 id="titulo-credenciais" class="credenciais__titulo">Acesso para avaliação</h2>
+    <p class="credenciais__texto">Entre com uma das contas abaixo (uma de cada perfil):</p>
+    <div class="credenciais__lista">
+        <div class="credencial" th:with="c=${contasDemonstracao.admin}" data-testid="credencial-admin">
+            <span class="selo selo--admin" th:text="${c.perfil()}">Administrador</span>
+            <dl class="credencial__dados">
+                <dt>E-mail</dt><dd><code th:text="${c.email()}">admin@exemplo.com</code></dd>
+                <dt>Senha</dt><dd><code th:text="${c.senha()}">senha</code></dd>
+            </dl>
+            <button th:if="${preencher}" type="button" class="botao botao--pequeno botao--contorno"
+                    th:attr="data-preencher-email=${c.email()},data-preencher-senha=${c.senha()}">Preencher</button>
+        </div>
+        <div class="credencial" th:if="${contasDemonstracao.cliente != null}"
+             th:with="c=${contasDemonstracao.cliente}" data-testid="credencial-cliente">
+            <span class="selo selo--cliente" th:text="${c.perfil()}">Cliente</span>
+            <dl class="credencial__dados">
+                <dt>E-mail</dt><dd><code th:text="${c.email()}">cliente@exemplo.com</code></dd>
+                <dt>Senha</dt><dd><code th:text="${c.senha()}">senha</code></dd>
+            </dl>
+            <button th:if="${preencher}" type="button" class="botao botao--pequeno botao--contorno"
+                    th:attr="data-preencher-email=${c.email()},data-preencher-senha=${c.senha()}">Preencher</button>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== Rodapé ===================== -->
+<footer th:fragment="rodape" class="rodape">
+    <div class="container rodape__conteudo">
+        <p>&copy; 2026 Mercado Express &middot; CP5 Java Advanced &middot; FIAP &ndash; TDS</p>
+        <p class="rodape__tec">Spring Boot &middot; Spring Security &middot; Thymeleaf &middot; PostgreSQL</p>
+    </div>
+</footer>
+
+</body>
+</html>

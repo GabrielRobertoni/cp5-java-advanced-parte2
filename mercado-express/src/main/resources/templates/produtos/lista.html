@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Produtos')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: cabecalho}"></header>
+
+<main class="container pagina">
+    <div class="pagina__cabecalho">
+        <div>
+            <h1>Produtos</h1>
+            <p class="texto-suave" sec:authorize="hasRole('CLIENTE')">
+                Olá, <strong sec:authentication="principal.nome">cliente</strong>! Consulte o catálogo do Mercado Express.
+            </p>
+            <p class="texto-suave" sec:authorize="hasRole('ADMIN')">
+                Gerencie os produtos da tabela <code>TDS_Sec_MVC_TB_Mercado</code>.
+            </p>
+        </div>
+        <a sec:authorize="hasRole('ADMIN')" th:href="@{/produtos/novo}" class="botao" data-testid="botao-novo">
+            + Novo produto
+        </a>
+    </div>
+
+    <div th:replace="~{fragments/layout :: mensagens}"></div>
+
+    <form th:action="@{/produtos}" method="get" class="busca" role="search">
+        <div class="campo campo--busca">
+            <label for="q" class="sr-only">Buscar produto</label>
+            <input type="search" id="q" name="q" th:value="${q}" placeholder="Buscar por nome ou tipo (ex.: banana, limpeza)">
+        </div>
+        <div class="campo">
+            <label for="setor" class="sr-only">Setor</label>
+            <select id="setor" name="setor">
+                <option value="">Todos os setores</option>
+                <option th:each="s : ${setores}" th:value="${s}" th:text="${s}"
+                        th:selected="${s == setorSelecionado}">Setor</option>
+            </select>
+        </div>
+        <button type="submit" class="botao">Buscar</button>
+        <a th:if="${q != null or setorSelecionado != null}" th:href="@{/produtos}" class="botao botao--contorno">Limpar</a>
+    </form>
+
+    <p class="texto-suave" data-testid="total-resultados">
+        <span th:text="${#lists.size(produtos)}">0</span> produto(s) encontrado(s)
+    </p>
+
+    <div th:if="${#lists.isEmpty(produtos)}" class="vazio">
+        <p>Nenhum produto encontrado.</p>
+    </div>
+
+    <div class="tabela-container" th:unless="${#lists.isEmpty(produtos)}">
+        <table class="tabela" data-testid="tabela-produtos">
+            <thead>
+            <tr>
+                <th>Produto</th>
+                <th>Tipo</th>
+                <th>Setor</th>
+                <th>Tamanho</th>
+                <th class="numero">Preço</th>
+                <th class="numero">Estoque</th>
+                <th class="acoes">Ações</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${produtos}">
+                <td><a th:href="@{/produtos/{id}(id=${p.id})}" th:text="${p.nome}" class="link-forte">Nome</a></td>
+                <td th:text="${p.tipo}">Tipo</td>
+                <td><span class="etiqueta" th:text="${p.setor}">Setor</span></td>
+                <td th:text="${p.tamanho} ?: '—'">Tamanho</td>
+                <td class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(p.preco, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                <td class="numero">
+                    <span th:text="${p.quantidadeEstoque}">0</span>
+                    <span th:if="${p.estoqueBaixo}" class="selo selo--alerta">baixo</span>
+                </td>
+                <td class="acoes">
+                    <a th:href="@{/produtos/{id}(id=${p.id})}" class="botao botao--pequeno botao--contorno">Ver</a>
+                    <form sec:authorize="hasRole('CLIENTE')" th:if="${p.disponivel}" th:action="@{/carrinho/itens}"
+                          method="post" class="form-inline form-comprar" data-testid="form-comprar">
+                        <input type="hidden" name="produtoId" th:value="${p.id}">
+                        <input type="hidden" name="voltarPara" value="/produtos">
+                        <label class="sr-only" th:for="|qtd-${p.id}|">Quantidade</label>
+                        <input type="number" th:id="|qtd-${p.id}|" name="quantidade" value="1" min="1"
+                               th:max="${p.quantidadeEstoque < 99 ? p.quantidadeEstoque : 99}" class="campo-qtd">
+                        <button type="submit" class="botao botao--pequeno">+ Carrinho</button>
+                    </form>
+                    <span sec:authorize="hasRole('CLIENTE')" th:unless="${p.disponivel}"
+                          class="selo selo--alerta">Esgotado</span>
+                    <th:block sec:authorize="hasRole('ADMIN')">
+                        <a th:href="@{/produtos/{id}/editar(id=${p.id})}" class="botao botao--pequeno">Editar</a>
+                        <form th:action="@{/produtos/{id}(id=${p.id})}" th:method="delete" class="form-inline"
+                              th:attr="data-confirm=|Excluir o produto ${p.nome}?|">
+                            <button type="submit" class="botao botao--pequeno botao--perigo">Excluir</button>
+                        </form>
+                    </th:block>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: rodape}"></footer>
+</body>
+</html>
