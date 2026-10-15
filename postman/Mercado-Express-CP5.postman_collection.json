@@ -7,20 +7,55 @@
   "auth": {
     "type": "basic",
     "basic": [
-      { "key": "username", "value": "{{clienteEmail}}", "type": "string" },
-      { "key": "password", "value": "{{clienteSenha}}", "type": "string" }
+      {
+        "key": "username",
+        "value": "{{clienteEmail}}",
+        "type": "string"
+      },
+      {
+        "key": "password",
+        "value": "{{clienteSenha}}",
+        "type": "string"
+      }
     ]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080" },
-    { "key": "clienteEmail", "value": "cliente@mercadoexpress.com" },
-    { "key": "clienteSenha", "value": "Cliente@123" },
-    { "key": "adminEmail", "value": "admin@mercadoexpress.com" },
-    { "key": "adminSenha", "value": "Admin@123" },
-    { "key": "produtoId", "value": "1" },
-    { "key": "produtoCaroId", "value": "5" },
-    { "key": "numeroPedido", "value": "" },
-    { "key": "pedidoRecusado", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "clienteEmail",
+      "value": "cliente@mercadoexpress.com"
+    },
+    {
+      "key": "clienteSenha",
+      "value": "Cliente@123"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@mercadoexpress.com"
+    },
+    {
+      "key": "adminSenha",
+      "value": "Admin@123"
+    },
+    {
+      "key": "produtoId",
+      "value": "1"
+    },
+    {
+      "key": "produtoCaroId",
+      "value": "5"
+    },
+    {
+      "key": "numeroPedido",
+      "value": ""
+    },
+    {
+      "key": "pedidoRecusado",
+      "value": ""
+    }
   ],
   "item": [
     {
@@ -52,7 +87,12 @@
       "name": "2. Comprar (POST /api/pagamentos)",
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n    \"formaPagamento\": \"PIX\",\n    \"itens\": [\n        { \"produtoId\": {{produtoId}}, \"quantidade\": 2 }\n    ]\n}"
@@ -86,7 +126,13 @@
       "event": [
         {
           "listen": "prerequest",
-          "script": { "type": "text/javascript", "exec": ["setTimeout(() => {}, 2000);"] }
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// espera 2 s ANTES de consultar (síncrona: funciona no Postman, no Insomnia e no newman)",
+              "const inicio = Date.now(); while (Date.now() - inicio < 2000) { }"
+            ]
+          }
         },
         {
           "listen": "test",
@@ -119,7 +165,12 @@
       "name": "4. Compra acima do limite (banco recusa)",
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n    \"formaPagamento\": \"CARTAO_CREDITO\",\n    \"itens\": [\n        { \"produtoId\": {{produtoCaroId}}, \"quantidade\": 18 }\n    ]\n}"
@@ -151,7 +202,13 @@
       "event": [
         {
           "listen": "prerequest",
-          "script": { "type": "text/javascript", "exec": ["setTimeout(() => {}, 2000);"] }
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// espera 2 s ANTES de consultar (síncrona: funciona no Postman, no Insomnia e no newman)",
+              "const inicio = Date.now(); while (Date.now() - inicio < 2000) { }"
+            ]
+          }
         },
         {
           "listen": "test",
@@ -177,8 +234,16 @@
       "name": "6. Validação: JSON inválido (400)",
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n    \"itens\": []\n}" },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"itens\": []\n}"
+        },
         "url": "{{baseUrl}}/api/pagamentos"
       },
       "event": [
@@ -195,9 +260,23 @@
       ]
     },
     {
-      "name": "7. Sem autenticação (401)",
+      "name": "7. Credenciais inválidas (401)",
       "request": {
-        "auth": { "type": "noauth" },
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{clienteEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "senha-errada",
+              "type": "string"
+            }
+          ]
+        },
         "method": "GET",
         "header": [],
         "url": "{{baseUrl}}/api/pedidos"
@@ -207,7 +286,9 @@
           "listen": "test",
           "script": {
             "type": "text/javascript",
-            "exec": ["pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"]
+            "exec": [
+              "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+            ]
           }
         }
       ]
@@ -239,8 +320,16 @@
         "auth": {
           "type": "basic",
           "basic": [
-            { "key": "username", "value": "{{adminEmail}}", "type": "string" },
-            { "key": "password", "value": "{{adminSenha}}", "type": "string" }
+            {
+              "key": "username",
+              "value": "{{adminEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{adminSenha}}",
+              "type": "string"
+            }
           ]
         },
         "method": "GET",
@@ -274,7 +363,9 @@
           "listen": "test",
           "script": {
             "type": "text/javascript",
-            "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"]
+            "exec": [
+              "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
+            ]
           }
         }
       ]
