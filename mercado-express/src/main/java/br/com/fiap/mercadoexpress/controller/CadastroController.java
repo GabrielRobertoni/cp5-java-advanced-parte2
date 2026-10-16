@@ -2,6 +2,8 @@ package br.com.fiap.mercadoexpress.controller;
 
 import br.com.fiap.mercadoexpress.dto.CadastroForm;
 import br.com.fiap.mercadoexpress.exception.RegraNegocioException;
+import br.com.fiap.mercadoexpress.model.Perfil;
+import br.com.fiap.mercadoexpress.model.Usuario;
 import br.com.fiap.mercadoexpress.security.LoginSucessoHandler;
 import br.com.fiap.mercadoexpress.service.UsuarioService;
 import jakarta.validation.Valid;
@@ -17,13 +19,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/** Sign Up: cadastro público de novos usuários (perfil CLIENTE) na tabela TDS_Users_Mercado. */
+/**
+ * Sign Up: cadastro público de novos usuários na tabela TDS_Users_Mercado.
+ * A pessoa escolhe o tipo de conta: Cliente ou Administrador (gerente).
+ */
 @Controller
 @RequestMapping("/cadastro")
 @RequiredArgsConstructor
 public class CadastroController {
 
     private final UsuarioService usuarioService;
+
+    /** Opções de tipo de conta exibidas no formulário (Cliente primeiro, que é o mais comum). */
+    @ModelAttribute("perfis")
+    public Perfil[] perfis() {
+        return new Perfil[]{Perfil.CLIENTE, Perfil.ADMIN};
+    }
 
     @GetMapping
     public String formulario(@RequestParam(required = false) String email,
@@ -43,13 +54,15 @@ public class CadastroController {
         if (resultado.hasErrors()) {
             return "cadastro";
         }
+        Usuario usuario;
         try {
-            usuarioService.cadastrarCliente(form);
+            usuario = usuarioService.cadastrar(form);
         } catch (RegraNegocioException e) {
             resultado.rejectValue("email", "email.duplicado", e.getMessage());
             return "cadastro";
         }
-        redirect.addFlashAttribute("sucesso", "Cadastro realizado! Agora faça login com seu e-mail e senha.");
+        redirect.addFlashAttribute("sucesso", "Cadastro realizado como " + usuario.getPerfil().getDescricao()
+                + "! Agora faça login com seu e-mail e senha.");
         redirect.addAttribute("email", UsuarioService.normalizarEmail(form.getEmail()));
         return "redirect:/login";
     }

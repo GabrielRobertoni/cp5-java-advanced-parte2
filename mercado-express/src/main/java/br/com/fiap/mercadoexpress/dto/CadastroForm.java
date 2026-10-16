@@ -1,8 +1,10 @@
 package br.com.fiap.mercadoexpress.dto;
 
+import br.com.fiap.mercadoexpress.model.Perfil;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -29,6 +31,10 @@ public class CadastroForm {
 
     @NotBlank(message = "Confirme a senha.")
     private String confirmacaoSenha;
+
+    /** Tipo de conta: CLIENTE (padrão) ou ADMIN (gerente do mercado). */
+    @NotNull(message = "Escolha o tipo de conta.")
+    private Perfil perfil = Perfil.CLIENTE;
 
     /** Remove espaços acidentais (comuns ao copiar e colar). A senha não é alterada. */
     public void setNome(String nome) {

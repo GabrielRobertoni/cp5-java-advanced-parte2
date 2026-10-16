@@ -338,6 +338,7 @@ code {
 }
 
 @media (max-width: 480px) {
+    .opcoes-perfil { grid-template-columns: 1fr; }
     .credenciais { padding: .8rem; }
     .credencial { padding: .6rem; }
     .credencial__dados code { font-size: .74rem; padding: .1rem .25rem; }
@@ -375,6 +376,12 @@ code {
 .checkout { margin-top: 1.2rem; display: grid; gap: .9rem; justify-items: start; }
 .checkout h2 { margin: 0; }
 .opcoes-pagamento { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: .6rem; }
+.opcoes-perfil { border: 0; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+.opcoes-perfil legend { font-weight: 600; margin-bottom: .4rem; padding: 0; }
+.opcoes-perfil .opcao { align-items: flex-start; font-weight: 400; }
+.opcoes-perfil .opcao input[type=radio] { width: auto; flex: 0 0 auto; margin: .2rem 0 0; padding: 0; border: 0; }
+.opcoes-perfil .opcao span { min-width: 0; }
+.opcoes-perfil .erro { grid-column: 1 / -1; }
 .opcao {
     display: inline-flex; align-items: center; gap: .45rem; padding: .6rem .9rem; cursor: pointer;
     border: 2px solid var(--cinza-300); border-radius: 10px; background: var(--branco); font-weight: 600;

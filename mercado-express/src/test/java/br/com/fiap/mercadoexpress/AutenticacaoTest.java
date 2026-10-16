@@ -159,18 +159,81 @@ class AutenticacaoTest extends TesteIntegracao {
     }
 
     @Test
-    @DisplayName("Sign Up não permite escolher o perfil ADMIN")
-    void cadastroNaoEscalaPrivilegio() throws Exception {
-        mvc.perform(post("/cadastro").with(csrf())
-                        .param("nome", "Espertinho")
-                        .param("email", "hacker@teste.com")
-                        .param("senha", "segredo123")
-                        .param("confirmacaoSenha", "segredo123")
-                        .param("perfil", "ADMIN"))
-                .andExpect(status().is3xxRedirection());
+    @DisplayName("Tela de Sign Up oferece os dois tipos de conta, com Cliente marcado por padrão")
+    void cadastroMostraTiposDeConta() throws Exception {
+        mvc.perform(get("/cadastro"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Tipo de conta")))
+                .andExpect(content().string(containsString(
+                        "type=\"radio\" value=\"CLIENTE\" id=\"perfil1\" name=\"perfil\" checked=\"checked\"")))
+                .andExpect(content().string(containsString("type=\"radio\" value=\"ADMIN\" id=\"perfil2\" name=\"perfil\">")))
+                .andExpect(content().string(containsString("Administrador")));
+    }
 
-        assertThat(usuarioRepository.findByEmailIgnoreCase("hacker@teste.com").orElseThrow().getPerfil())
+    @Test
+    @DisplayName("Sign Up cria novo ADMINISTRADOR, que entra no painel da gerência")
+    void cadastroDeAdministrador() throws Exception {
+        mvc.perform(post("/cadastro").with(csrf())
+                        .param("perfil", "ADMIN")
+                        .param("nome", "Nova Gerente")
+                        .param("email", "gerente2@teste.com")
+                        .param("senha", "segredo123")
+                        .param("confirmacaoSenha", "segredo123"))
+                .andExpect(redirectedUrl("/login?email=gerente2%40teste.com"))
+                .andExpect(flash().attribute("sucesso", containsString("Administrador")));
+
+        Usuario salvo = usuarioRepository.findByEmailIgnoreCase("gerente2@teste.com").orElseThrow();
+        assertThat(salvo.getPerfil()).isEqualTo(Perfil.ADMIN);
+        assertThat(passwordEncoder.matches("segredo123", salvo.getSenha())).isTrue();
+
+        mvc.perform(login("gerente2@teste.com", "segredo123"))
+                .andExpect(redirectedUrl("/admin/painel"))
+                .andExpect(authenticated().withRoles("ADMIN"));
+    }
+
+    @Test
+    @DisplayName("Sign Up cria novo CLIENTE quando esse tipo é escolhido")
+    void cadastroDeClienteEscolhido() throws Exception {
+        mvc.perform(post("/cadastro").with(csrf())
+                        .param("perfil", "CLIENTE")
+                        .param("nome", "Novo Cliente")
+                        .param("email", "cliente2@teste.com")
+                        .param("senha", "segredo123")
+                        .param("confirmacaoSenha", "segredo123"))
+                .andExpect(redirectedUrl("/login?email=cliente2%40teste.com"))
+                .andExpect(flash().attribute("sucesso", containsString("Cliente")));
+
+        assertThat(usuarioRepository.findByEmailIgnoreCase("cliente2@teste.com").orElseThrow().getPerfil())
                 .isEqualTo(Perfil.CLIENTE);
+        mvc.perform(login("cliente2@teste.com", "segredo123"))
+                .andExpect(redirectedUrl("/produtos"))
+                .andExpect(authenticated().withRoles("CLIENTE"));
+    }
+
+    @Test
+    @DisplayName("Sign Up recusa tipo de conta inexistente ou vazio, sem erro 500 e sem salvar")
+    void cadastroTipoDeContaInvalido() throws Exception {
+        long antes = usuarioRepository.count();
+        mvc.perform(post("/cadastro").with(csrf())
+                        .param("perfil", "ROOT")
+                        .param("nome", "Tipo Errado")
+                        .param("email", "tipoerrado@teste.com")
+                        .param("senha", "segredo123")
+                        .param("confirmacaoSenha", "segredo123"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("cadastro"))
+                .andExpect(model().attributeHasFieldErrors("cadastroForm", "perfil"))
+                .andExpect(content().string(containsString("Tipo de conta inválido")));
+        mvc.perform(post("/cadastro").with(csrf())
+                        .param("perfil", "")
+                        .param("nome", "Tipo Vazio")
+                        .param("email", "tipovazio@teste.com")
+                        .param("senha", "segredo123")
+                        .param("confirmacaoSenha", "segredo123"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrors("cadastroForm", "perfil"))
+                .andExpect(content().string(containsString("Escolha o tipo de conta")));
+        assertThat(usuarioRepository.count()).isEqualTo(antes);
     }
 
     @Test

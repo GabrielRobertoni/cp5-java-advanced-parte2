@@ -24,17 +24,18 @@ public class UsuarioService {
     private final ContasDemonstracao contasDemonstracao;
 
     /**
-     * Sign Up: todo usuário que se cadastra pela tela pública recebe o perfil CLIENTE.
-     * Somente um ADMIN pode promover alguém a ADMIN.
+     * Sign Up: cria a conta com o perfil escolhido na tela (CLIENTE ou ADMIN).
+     * Sem escolha, a conta é de CLIENTE.
      */
     @Transactional
-    public Usuario cadastrarCliente(CadastroForm form) {
+    public Usuario cadastrar(CadastroForm form) {
         String email = normalizarEmail(form.getEmail());
         if (repository.existsByEmailIgnoreCase(email)) {
             throw new RegraNegocioException("Este e-mail já está cadastrado. Faça login.");
         }
+        Perfil perfil = form.getPerfil() == null ? Perfil.CLIENTE : form.getPerfil();
         Usuario usuario = new Usuario(form.getNome().trim(), email,
-                passwordEncoder.encode(form.getSenha()), Perfil.CLIENTE);
+                passwordEncoder.encode(form.getSenha()), perfil);
         return repository.save(usuario);
     }
 
