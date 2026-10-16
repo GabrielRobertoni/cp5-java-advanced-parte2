@@ -251,7 +251,7 @@ filas do RabbitMQ (um serviço nunca chama o outro diretamente).
 
 ```mermaid
 classDiagram
-    direction LR
+    direction TB
     namespace mercadoExpress {
         class CarrinhoService {
             +finalizar(cliente, formaPagamento) Pedido
