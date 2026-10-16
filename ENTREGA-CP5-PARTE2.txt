@@ -41,6 +41,7 @@ CONFIGURAÇÃO DO BANCO DE DADOS (PostgreSQL - o mesmo da Parte I)
 USUÁRIOS PARA TESTE
 - Administrador: admin@mercadoexpress.com   / senha: Admin@123
 - Cliente:       cliente@mercadoexpress.com / senha: Cliente@123
+- Ou crie uma conta nova pela tela "Criar conta" (Sign Up), escolhendo o tipo: Cliente ou Administrador.
 
 EXEMPLO DE REQUISIÇÃO DE COMPRA EM JSON (Postman ou Insomnia)
 POST http://localhost:8080/api/pagamentos

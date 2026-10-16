@@ -23,6 +23,11 @@ A gerência acompanha tudo em um **dashboard** com compras, vendas, lucro e esto
 | **ADMIN** (dashboard, compras, CRUD, usuários) | `admin@mercadoexpress.com` | `Admin@123` |
 | **CLIENTE** (catálogo, carrinho, meus pedidos) | `cliente@mercadoexpress.com` | `Cliente@123` |
 
+Além dessas duas contas, **qualquer pessoa pode criar uma conta nova** pela tela **Criar conta (Sign Up)**,
+escolhendo o tipo: **Cliente** ou **Administrador** (gerente). A conta é gravada na tabela `TDS_Users_Mercado`
+com a senha em BCrypt e já pode ser usada no login. Um administrador também pode mudar o perfil de qualquer conta
+(exceto as duas de avaliação) na tela **Usuários**.
+
 ## 👥 Integrantes
 
 | Nome | RM |
@@ -36,14 +41,15 @@ A gerência acompanha tudo em um **dashboard** com compras, vendas, lucro e esto
 
 1. [Requisitos do CP5 × o que foi implementado](#-requisitos-do-cp5--o-que-foi-implementado)
 2. [Arquitetura](#️-arquitetura)
-3. [Exchanges, filas e mensagens](#-exchanges-filas-e-mensagens)
-4. [Os três microsserviços](#-os-três-microsserviços)
-5. [Banco de dados](#-banco-de-dados)
-6. [Telas (com prints)](#️-telas-com-prints)
-7. [Testes com Postman e pelo painel do RabbitMQ](#-testes-com-postman-e-pelo-painel-do-rabbitmq)
-8. [Como executar](#️-como-executar)
-9. [E-mail real pelo Gmail](#-e-mail-real-pelo-gmail-senha-de-app)
-10. [Testes automatizados](#-testes-automatizados)
+3. [Diagramas de classes e de relacionamento](#-diagramas-de-classes-e-de-relacionamento)
+4. [Exchanges, filas e mensagens](#-exchanges-filas-e-mensagens)
+5. [Os três microsserviços](#-os-três-microsserviços)
+6. [Banco de dados](#-banco-de-dados)
+7. [Telas (com prints)](#️-telas-com-prints)
+8. [Testes com Postman e pelo painel do RabbitMQ](#-testes-com-postman-e-pelo-painel-do-rabbitmq)
+9. [Como executar](#️-como-executar)
+10. [E-mail real pelo Gmail](#-e-mail-real-pelo-gmail-senha-de-app)
+11. [Testes automatizados](#-testes-automatizados)
 
 ---
 
@@ -138,6 +144,296 @@ sequenceDiagram
 
 ---
 
+## 📐 Diagramas de classes e de relacionamento
+
+### Diagrama de classes – domínio do Mercado Express
+
+Entidades JPA do `mercado-express` e os enums que elas usam. O pedido guarda os itens com o preço e o custo da
+época da venda (por isso o item aponta para o produto só pelo `produtoId`).
+
+```mermaid
+classDiagram
+    direction LR
+    class Usuario {
+        -Long id
+        -String nome
+        -String email
+        -String senha
+        -Perfil perfil
+        -LocalDateTime criadoEm
+    }
+    class Produto {
+        -Long id
+        -String nome
+        -String tipo
+        -String setor
+        -String tamanho
+        -BigDecimal preco
+        -BigDecimal precoCusto
+        -Integer quantidadeEstoque
+        -String descricao
+        +isEstoqueBaixo() boolean
+        +isDisponivel() boolean
+    }
+    class Pedido {
+        -Long id
+        -String clienteNome
+        -String clienteEmail
+        -CanalVenda canal
+        -FormaPagamento formaPagamento
+        -StatusPedido status
+        -BigDecimal valorTotal
+        -BigDecimal custoTotal
+        -UUID transacaoId
+        -String codigoAutorizacao
+        -String motivoRecusa
+        -StatusEmail emailStatus
+        -UUID emailSolicitacaoId
+        +adicionarItem(ItemPedido item)
+        +calcularTotais()
+        +getLucro() BigDecimal
+    }
+    class ItemPedido {
+        -Long id
+        -Long produtoId
+        -String produtoNome
+        -String produtoSetor
+        -Integer quantidade
+        -BigDecimal precoUnitario
+        -BigDecimal custoUnitario
+        -BigDecimal subtotal
+        +getCustoTotal() BigDecimal
+    }
+    class Perfil {
+        <<enumeration>>
+        ADMIN
+        CLIENTE
+    }
+    class StatusPedido {
+        <<enumeration>>
+        AGUARDANDO_PAGAMENTO
+        PAGO
+        RECUSADO
+    }
+    class StatusEmail {
+        <<enumeration>>
+        NAO_APLICAVEL
+        PENDENTE
+        SOLICITADO
+        ENVIADO
+        ERRO
+    }
+    class FormaPagamento {
+        <<enumeration>>
+        PIX
+        CARTAO_CREDITO
+        CARTAO_DEBITO
+    }
+    class CanalVenda {
+        <<enumeration>>
+        WEB
+        API
+    }
+    Pedido "0..*" --> "0..1" Usuario : usuario
+    Pedido "1" *-- "1..*" ItemPedido : itens
+    ItemPedido ..> Produto : produtoId
+    Usuario --> Perfil
+    Pedido --> StatusPedido
+    Pedido --> StatusEmail
+    Pedido --> FormaPagamento
+    Pedido --> CanalVenda
+```
+
+### Diagrama de classes – serviços e mensageria dos três microsserviços
+
+As setas contínuas são chamadas entre classes do mesmo serviço; as tracejadas são mensagens que passam pelas
+filas do RabbitMQ (um serviço nunca chama o outro diretamente).
+
+```mermaid
+classDiagram
+    direction LR
+    namespace mercadoExpress {
+        class CarrinhoService {
+            +finalizar(cliente, formaPagamento) Pedido
+        }
+        class PagamentoApi {
+            +processar(CompraRequest) ResponseEntity
+        }
+        class PedidoService {
+            +criarPedido(cliente, itens, forma, canal) Pedido
+            +buscar(id, solicitante) Pedido
+        }
+        class PagamentoFacade {
+            +solicitarPagamento(pedidoId) boolean
+            +sucessoPagamento(PagamentoResposta)
+            +erroPagamento(PagamentoResposta)
+            +solicitarEmail(pedidoId) boolean
+            +atualizarStatusEmail(EmailStatusMensagem)
+        }
+        class PagamentoRequestProducer {
+            +integrar(PagamentoRequest)
+        }
+        class EmailRequestProducer {
+            +solicitar(EmailRequest)
+        }
+        class PagamentoResponseSucessoConsumidor {
+            +receber(PagamentoResposta)
+        }
+        class PagamentoResponseErroConsumidor {
+            +receber(PagamentoResposta)
+        }
+        class EmailResponseConsumidor {
+            +receber(EmailStatusMensagem)
+        }
+    }
+    namespace bancoTranquilo {
+        class PagamentoRequestConsumidor {
+            +receberMensagem(PagamentoRequest)
+        }
+        class PagamentoService {
+            +processar(PagamentoRequest) PagamentoResposta
+        }
+        class AnalisePagamento {
+            +analisar(PagamentoRequest) Decisao
+        }
+        class PagamentoSucessoProdutor {
+            +gerarResposta(PagamentoResposta)
+        }
+        class PagamentoErroProdutor {
+            +gerarResposta(PagamentoResposta)
+        }
+    }
+    namespace emailService {
+        class EmailConsumer {
+            +listen(EmailRequest)
+        }
+        class EmailService {
+            +processar(EmailRequest) EmailModel
+        }
+        class EmailStatusProdutor {
+            +informar(EmailModel)
+        }
+    }
+    CarrinhoService --> PedidoService
+    PagamentoApi --> PedidoService
+    PedidoService ..> PagamentoFacade : evento após o commit
+    PagamentoFacade --> PagamentoRequestProducer
+    PagamentoFacade --> EmailRequestProducer
+    PagamentoResponseSucessoConsumidor --> PagamentoFacade
+    PagamentoResponseErroConsumidor --> PagamentoFacade
+    EmailResponseConsumidor --> PagamentoFacade
+    PagamentoRequestProducer ..> PagamentoRequestConsumidor : pagamento-request-queue
+    PagamentoRequestConsumidor --> PagamentoService
+    PagamentoService --> AnalisePagamento
+    PagamentoRequestConsumidor --> PagamentoSucessoProdutor
+    PagamentoRequestConsumidor --> PagamentoErroProdutor
+    PagamentoSucessoProdutor ..> PagamentoResponseSucessoConsumidor : pagamento-response-sucesso-queue
+    PagamentoErroProdutor ..> PagamentoResponseErroConsumidor : pagamento-response-erro-queue
+    EmailRequestProducer ..> EmailConsumer : email-request-queue
+    EmailConsumer --> EmailService
+    EmailConsumer --> EmailStatusProdutor
+    EmailStatusProdutor ..> EmailResponseConsumidor : email-response-queue
+```
+
+### Diagrama de relacionamento (banco de dados)
+
+Tabelas do banco `mercado_express`. As três primeiras do Mercado (schema `public`) têm chaves estrangeiras de verdade.
+`TDS_TRANSACOES_BANCO` (schema `banco`) e `TDS_EMAILS_MERCADO` (schema `email`) pertencem a outros microsserviços:
+a ligação com o pedido é feita pelo conteúdo das mensagens (`transacao_id` e `numero_pedido`), por isso aparece
+tracejada.
+
+```mermaid
+erDiagram
+    TDS_USERS_MERCADO ||--o{ TDS_PEDIDOS_MERCADO : "faz"
+    TDS_PEDIDOS_MERCADO ||--|{ TDS_ITENS_PEDIDO_MERCADO : "contém"
+    TDS_SEC_MVC_TB_MERCADO |o--o{ TDS_ITENS_PEDIDO_MERCADO : "vendido em"
+    TDS_PEDIDOS_MERCADO ||..o| TDS_TRANSACOES_BANCO : "transacao_id"
+    TDS_PEDIDOS_MERCADO ||..o{ TDS_EMAILS_MERCADO : "numero_pedido"
+
+    TDS_USERS_MERCADO {
+        BIGINT id PK
+        VARCHAR nome
+        VARCHAR email UK
+        VARCHAR senha "hash BCrypt"
+        VARCHAR perfil "ADMIN ou CLIENTE"
+        TIMESTAMP criado_em
+    }
+    TDS_SEC_MVC_TB_MERCADO {
+        BIGINT id PK
+        VARCHAR nome
+        VARCHAR tipo
+        VARCHAR setor
+        VARCHAR tamanho
+        NUMERIC preco
+        NUMERIC preco_custo
+        INTEGER quantidade_estoque
+        VARCHAR descricao
+        TIMESTAMP criado_em
+        TIMESTAMP atualizado_em
+    }
+    TDS_PEDIDOS_MERCADO {
+        BIGINT id PK "numero do pedido"
+        BIGINT usuario_id FK
+        VARCHAR cliente_nome
+        VARCHAR cliente_email
+        VARCHAR canal "WEB ou API"
+        VARCHAR forma_pagamento
+        VARCHAR status "AGUARDANDO_PAGAMENTO, PAGO, RECUSADO"
+        NUMERIC valor_total
+        NUMERIC custo_total
+        UUID transacao_id UK
+        VARCHAR codigo_autorizacao
+        VARCHAR motivo_recusa
+        TIMESTAMP criado_em
+        TIMESTAMP pagamento_enviado_em
+        TIMESTAMP respondido_em
+        VARCHAR email_status
+        UUID email_solicitacao_id
+        UUID email_id
+        TIMESTAMP email_atualizado_em
+        VARCHAR email_erro
+    }
+    TDS_ITENS_PEDIDO_MERCADO {
+        BIGINT id PK
+        BIGINT pedido_id FK
+        BIGINT produto_id FK
+        VARCHAR produto_nome
+        VARCHAR produto_setor
+        INTEGER quantidade
+        NUMERIC preco_unitario
+        NUMERIC custo_unitario
+        NUMERIC subtotal
+    }
+    TDS_TRANSACOES_BANCO {
+        UUID transacao_id PK
+        BIGINT numero_pedido
+        NUMERIC valor
+        VARCHAR forma_pagamento
+        VARCHAR cliente_email
+        VARCHAR status "APROVADO ou RECUSADO"
+        VARCHAR codigo_autorizacao
+        VARCHAR motivo
+        TIMESTAMP recebida_em
+        TIMESTAMP processada_em
+    }
+    TDS_EMAILS_MERCADO {
+        UUID email_id PK
+        UUID solicitacao_id UK
+        VARCHAR owner_ref
+        BIGINT numero_pedido
+        VARCHAR email_from
+        VARCHAR email_to
+        VARCHAR subject
+        TEXT text
+        VARCHAR status_email "PROCESSING, SENT, ERROR"
+        VARCHAR erro
+        TIMESTAMP criado_em
+        TIMESTAMP send_date_email
+    }
+```
+
+---
+
 ## 🐇 Exchanges, filas e mensagens
 
 Mesmos nomes usados na aula de RabbitMQ (exchange + routing key → queue), com as filas de e-mail e uma dead letter queue:
@@ -202,7 +498,8 @@ cp5-java-advanced-parte2/
 
 ### 1. `mercado-express` (porta 8080)
 
-Evolução do projeto da Parte I (login próprio, Sign Up, perfis ADMIN/CLIENTE e CRUD continuam iguais), com:
+Evolução do projeto da Parte I (login próprio, perfis ADMIN/CLIENTE e CRUD de produtos). O **Sign Up** agora deixa
+escolher o tipo de conta (Cliente ou Administrador), para cadastrar novos gerentes e novos clientes. Além disso:
 
 | Pacote | Classes principais |
 |---|---|
@@ -295,6 +592,12 @@ SELECT numero_pedido, email_to, subject, status_email, send_date_email FROM emai
 
 ### Login (o mesmo da Parte I)
 ![Login](docs/prints/02-login.png)
+
+### Cadastro (Sign Up) com escolha do tipo de conta
+Qualquer pessoa cria uma conta de **Cliente** ou de **Administrador** (gerente). Depois do cadastro, o login leva
+cada perfil para a sua área: o administrador para o dashboard e o cliente para o catálogo.
+
+![Cadastro com tipo de conta](docs/prints/22-cadastro-tipo-de-conta.png)
 
 ### Catálogo do cliente com "+ Carrinho"
 ![Catálogo](docs/prints/03-catalogo-cliente.png)
@@ -513,6 +816,6 @@ e verificam exatamente o que seria publicado em cada exchange).
 | mercado-express | `PagamentoApiTest` | API do Postman: 202, 400, 401, 403, 422, Basic Auth sem sessão, privacidade dos pedidos |
 | mercado-express | `DashboardTest` | faturamento, lucro, margem, ticket médio, gráficos e telas da gerência |
 | mercado-express | `MensageriaContratoTest` | JSON das mensagens e topologia (exchanges, filas, bindings, dead letter) |
-| mercado-express | testes da Parte I | login, Sign Up, perfis, CRUD de produtos (agora com custo), Flyway |
+| mercado-express | testes da Parte I | login, Sign Up de Cliente e de Administrador, perfis, CRUD de produtos (agora com custo), Flyway |
 | banco-tranquilo | `AnalisePagamentoTest`, `BancoTranquiloIntegracaoTest`, `TopologiaTest` | regras do banco, transação gravada no schema `banco`, resposta na fila certa, idempotência, JSON da aula |
 | email-service | `EmailServiceIntegracaoTest`, `TopologiaTest` | e-mail HTML enviado e gravado como SENT, JSON da aula, sem duplicar, mensagem inválida → dead letter, SMTP fora do ar → ERROR |
