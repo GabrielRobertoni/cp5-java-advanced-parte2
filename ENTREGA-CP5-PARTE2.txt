@@ -12,7 +12,7 @@ GITHUB DO PROJETO (README com descrição, prints, explicações e exemplos)
 https://github.com/GabrielRobertoni/cp5-java-advanced-parte2
 
 VÍDEO (aplicação rodando, Dashboard do RabbitMQ e testes no Postman)
-<colocar aqui o link do YouTube (não listado)>
+https://youtu.be/BLynvjXv9UE   (YouTube, não listado)
 
 IDE UTILIZADO
 IntelliJ IDEA

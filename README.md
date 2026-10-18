@@ -13,7 +13,7 @@ A gerência acompanha tudo em um **dashboard** com compras, vendas, lucro e esto
 | 💻 **IDE utilizada** | IntelliJ IDEA |
 | 🐇 **Broker** | RabbitMQ 4 (com o painel *Management*) — funciona também com CloudAMQP/LavinMQ |
 | 🐘 **Banco de dados** | PostgreSQL 16 (o mesmo banco `mercado_express` da Parte I) |
-| 🎬 **Vídeo** | _link do YouTube_ |
+| 🎬 **Vídeo** | [https://youtu.be/BLynvjXv9UE](https://youtu.be/BLynvjXv9UE) (YouTube, não listado) |
 | 🔗 **Parte I** | [cp5-java-advanced-parte1](https://github.com/GabrielRobertoni/cp5-java-advanced-parte1) |
 
 ### 🔑 Acesso para avaliação
